@@ -15,12 +15,9 @@ Visit http://localhost:8000. The catalog has no external dependencies. Individua
 ## Publish on GitHub Pages
 
 1. Create an empty GitHub repository named `MuseSparkReport` (do not initialize it with a README).
-2. Push this folder, replacing `YOUR_USERNAME` below with your GitHub username:
+2. This folder already has an initial commit on `main`. Push it, replacing `YOUR_USERNAME` below with your GitHub username:
 
    ```sh
-   git add .
-   git commit -m "Add research library and GitHub Pages publishing"
-   git branch -M main
    git remote add origin https://github.com/YOUR_USERNAME/MuseSparkReport.git
    git push -u origin main
    ```
