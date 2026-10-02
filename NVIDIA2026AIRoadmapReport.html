@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>NVIDIA 2026 AI Roadmap Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,750&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#f4f6f2; --paper:#ffffff; --ink:#111711; --muted:#4f5b50; --faint:#e2e8df;
+      --line:#cbd4c8; --green:#4b8f00; --green-bright:#76b900; --green-pale:#e7f4d6;
+      --blue:#096d83; --amber:#a75b00; --red:#a83232; --code:#18201a; --code-ink:#dff0dd;
+      --shadow:0 20px 60px rgba(29,46,25,.10);
+      --sans:"IBM Plex Sans",system-ui,sans-serif; --serif:"Source Serif 4",Georgia,serif; --mono:"IBM Plex Mono",monospace;
+    }
+    @media(prefers-color-scheme:dark){
+      :root{--bg:#0e120f;--paper:#151a16;--ink:#eef5ea;--muted:#aebaaa;--faint:#242c25;--line:#354036;--green:#8dcf30;--green-bright:#9be43c;--green-pale:#24351c;--blue:#65c7d8;--amber:#efad55;--red:#ff8787;--code:#090c09;--code-ink:#daf0d5;--shadow:0 25px 70px rgba(0,0,0,.35)}
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.62}
+    a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}
+    a:hover{color:var(--green)}
+    button{font:inherit}
+    .topline{height:5px;background:linear-gradient(90deg,var(--green-bright) 0 41%,var(--ink) 41% 100%)}
+    .reading-progress{position:fixed;z-index:50;top:0;left:0;height:3px;width:0;background:var(--green-bright)}
+    .shell{max-width:1480px;margin:auto;padding:0 28px}
+    .mast{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.75fr);gap:72px;padding:70px 0 54px;border-bottom:1px solid var(--line)}
+    .dateline{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 18px}
+    h1{font:750 clamp(42px,6vw,84px)/.98 var(--serif);letter-spacing:-.045em;max-width:920px;margin:0}
+    .deck{font-size:clamp(18px,2vw,24px);line-height:1.45;color:var(--muted);max-width:850px;margin:28px 0 0}
+    .thesis{border-top:5px solid var(--ink);padding-top:17px;align-self:end}
+    .thesis h2{font:600 15px var(--mono);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px}
+    .thesis p{font:600 22px/1.36 var(--serif);margin:0}
+    .meta{display:flex;flex-wrap:wrap;gap:16px 28px;margin-top:25px;color:var(--muted);font:500 12px var(--mono)}
+    .meta span{display:flex;gap:8px;align-items:center}.meta b{color:var(--ink)}
+    .jump-wrap{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(12px)}
+    .jump{max-width:1480px;margin:auto;padding:0 28px;display:flex;gap:6px;align-items:center;overflow:auto;scrollbar-width:none}
+    .jump a{white-space:nowrap;text-decoration:none;padding:15px 12px 13px;font:500 12px var(--mono);color:var(--muted);border-bottom:2px solid transparent}
+    .jump a:hover,.jump a.active{color:var(--ink);border-color:var(--green-bright)}
+    .jump .label{color:var(--green);padding-left:0;font-weight:600}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+    .metric{padding:34px 28px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}
+    .metric strong{display:block;font:750 clamp(28px,3.4vw,50px)/1 var(--serif);letter-spacing:-.035em}
+    .metric span{display:block;font:500 12px var(--mono);color:var(--muted);margin-top:10px}
+    main{max-width:1480px;margin:auto;padding:0 28px 90px}
+    section{scroll-margin-top:58px;padding:76px 0;border-bottom:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:120px minmax(0,1fr);gap:22px;margin-bottom:44px}
+    .section-no{font:600 13px var(--mono);color:var(--green);padding-top:11px}
+    .section-title h2{font:750 clamp(32px,4vw,54px)/1.08 var(--serif);letter-spacing:-.03em;margin:0}
+    .section-title p{max-width:830px;color:var(--muted);font-size:18px;margin:15px 0 0}
+    .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+    .panel{background:var(--paper);padding:28px;border:1px solid var(--line);box-shadow:var(--shadow)}
+    .panel.flat{box-shadow:none}.panel h3{font:700 23px/1.2 var(--serif);margin:0 0 13px}.panel p{margin:0;color:var(--muted)}
+    .tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+    .signal{border-left:6px solid var(--green-bright);padding:22px 26px;background:var(--green-pale);margin-top:30px}.signal strong{font-family:var(--serif);font-size:19px}.signal p{margin:6px 0 0;color:var(--muted)}
+    .caveat{border:1px dashed var(--amber);padding:18px 20px;color:var(--muted);margin-top:22px}.caveat b{color:var(--amber)}
+    .timeline{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:32px;border-top:2px solid var(--ink)}
+    .time{padding:22px 18px 0 0;position:relative}.time:before{content:"";position:absolute;width:10px;height:10px;background:var(--green-bright);border:3px solid var(--bg);top:-8px;left:0;border-radius:50%}
+    .time .date{font:600 11px var(--mono);color:var(--green)}.time h4{font-size:16px;margin:7px 0 5px}.time p{font-size:13px;color:var(--muted);margin:0}
+    .hardware{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:start}
+    .chip{background:var(--code);color:var(--code-ink);padding:32px;position:relative;overflow:hidden;border:1px solid #334235}
+    .chip:after{content:"336B";position:absolute;right:-15px;bottom:-43px;font:750 135px/1 var(--serif);opacity:.055}
+    .chip-title{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #39493c;padding-bottom:20px;margin-bottom:20px}.chip-title h3{font:650 29px/1.05 var(--serif);margin:0}.chip-title span{font:500 11px var(--mono);color:#a9c6a2}
+    .specs{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:#344136}.spec{background:var(--code);padding:19px 16px}.spec b{display:block;color:#fff;font:600 22px/1.1 var(--mono)}.spec span{display:block;color:#a8b9a5;font-size:12px;margin-top:6px}
+    .copy h3{font:700 28px var(--serif);margin:0 0 14px}.copy p{color:var(--muted)}.copy ul{padding-left:20px}.copy li{margin:9px 0}
+    .source{font:500 10px var(--mono);color:var(--green);text-decoration:none;border-bottom:1px dotted currentColor}.source:hover{border-bottom-style:solid}
+    .stack{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:28px}.layer{min-height:170px;padding:18px;background:var(--paper);border-top:5px solid var(--line)}.layer:nth-child(1){border-color:var(--green-bright)}.layer:nth-child(2){border-color:#5f9c1b}.layer:nth-child(3){border-color:var(--blue)}.layer:nth-child(4){border-color:var(--amber)}.layer:nth-child(5){border-color:var(--red)}.layer span{font:600 10px var(--mono);color:var(--muted)}.layer h4{font:700 17px/1.2 var(--serif);margin:8px 0}.layer p{font-size:13px;color:var(--muted);margin:0}
+    .pipeline{display:grid;grid-template-columns:1fr 38px 1fr 38px 1fr 38px 1fr;align-items:stretch;margin:30px 0}.stage{background:var(--paper);border:1px solid var(--line);padding:23px}.stage b{font:600 12px var(--mono);color:var(--green)}.stage h4{font:700 19px var(--serif);margin:8px 0}.stage p{font-size:13px;color:var(--muted);margin:0}.arrow{display:grid;place-items:center;color:var(--green);font-size:24px}
+    .paper-feature{background:var(--code);color:var(--code-ink);padding:clamp(28px,5vw,58px);position:relative;overflow:hidden}.paper-feature:before{content:"SKILL → ENV";position:absolute;right:-1vw;top:0;font:750 clamp(58px,10vw,145px)/.9 var(--serif);color:rgba(255,255,255,.035);white-space:nowrap}.paper-feature .tag{color:#9fe33f}.paper-feature h3{font:750 clamp(30px,4vw,52px)/1.05 var(--serif);letter-spacing:-.03em;margin:0;max-width:820px}.paper-feature .sub{max-width:880px;color:#b9cbb6;font-size:18px;margin:18px 0 0}.paper-numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#354137;margin-top:36px}.paper-num{background:var(--code);padding:20px 16px}.paper-num b{display:block;color:#fff;font:600 25px var(--mono)}.paper-num span{font-size:12px;color:#aec1aa}.paper-links{display:flex;gap:18px;flex-wrap:wrap;margin-top:25px}.paper-links a{color:#d8edcf;font:500 12px var(--mono)}
+    .compare{margin-top:28px}.compare-row{display:grid;grid-template-columns:180px 1fr 90px;align-items:center;gap:18px;margin:14px 0}.compare-row span{font-size:13px}.bar{height:11px;background:var(--faint);position:relative}.bar i{display:block;height:100%;background:var(--green-bright)}.compare-row b{text-align:right;font:600 13px var(--mono)}
+    .paper-list{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:30px}.paper{padding:24px 0;border-top:2px solid var(--ink)}.paper .date{font:600 11px var(--mono);color:var(--green)}.paper h3{font:700 22px/1.2 var(--serif);margin:9px 0}.paper p{font-size:14px;color:var(--muted)}.paper .byline{font:500 11px/1.45 var(--mono);color:var(--muted)}
+    .architecture{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:12px;margin:30px 0}.arch-box{border:1px solid var(--line);background:var(--paper);padding:22px;min-height:135px}.arch-box h4{margin:0 0 6px;font:700 18px var(--serif)}.arch-box p{font-size:13px;color:var(--muted);margin:0}.arch-arrow{font:600 18px var(--mono);color:var(--green)}
+    .researchers{columns:3 280px;column-gap:44px}.person{break-inside:avoid;border-top:1px solid var(--line);padding:17px 0}.person h3{font:700 18px var(--serif);margin:0}.person .role{font:500 10px var(--mono);color:var(--green)}.person p{font-size:13px;color:var(--muted);margin:6px 0 0}
+    .model-family{display:grid;grid-template-columns:180px 1fr;gap:22px;padding:22px 0;border-top:1px solid var(--line)}.model-family h3{font:700 20px var(--serif);margin:0}.model-family p{margin:0;color:var(--muted)}.model-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.chiplet{font:500 11px var(--mono);padding:6px 9px;background:var(--paper);border:1px solid var(--line)}
+    .tool-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}.filter{cursor:pointer;padding:8px 13px;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 11px var(--mono)}.filter[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+    .tools{width:100%;border-collapse:collapse}.tools th{text-align:left;font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px;border-bottom:2px solid var(--ink)}.tools td{vertical-align:top;padding:18px 12px;border-bottom:1px solid var(--line);font-size:14px}.tools td:first-child{font:700 17px var(--serif)}.tools .owner,.tools .maturity{font:500 11px var(--mono)}.tools tr[hidden]{display:none}
+    .security-layers{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.security{padding:22px;background:var(--paper);border-top:4px solid var(--green-bright)}.security:nth-child(2){border-color:var(--blue)}.security:nth-child(3){border-color:var(--amber)}.security:nth-child(4){border-color:var(--red)}.security h3{font:700 18px var(--serif);margin:0 0 10px}.security p{font-size:13px;color:var(--muted);margin:0}
+    .directions{counter-reset:dir;display:grid;grid-template-columns:repeat(2,1fr);gap:0 44px}.direction{counter-increment:dir;display:grid;grid-template-columns:52px 1fr;gap:16px;padding:24px 0;border-top:1px solid var(--line)}.direction:before{content:counter(dir,decimal-leading-zero);font:600 18px var(--mono);color:var(--green)}.direction h3{font:700 20px var(--serif);margin:0 0 6px}.direction p{margin:0;color:var(--muted);font-size:14px}
+    .verdict{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--ink);color:var(--bg)}.verdict>div{padding:36px}.verdict>div+div{border-left:1px solid color-mix(in srgb,var(--bg) 25%,transparent)}.verdict h3{font:700 28px var(--serif);margin:0 0 12px}.verdict p{color:color-mix(in srgb,var(--bg) 78%,transparent);margin:0}
+    .openq{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:17px 0;border-top:1px solid var(--line)}.openq b{font:600 12px var(--mono);color:var(--amber)}.openq p{margin:0;color:var(--muted)}
+    .sources-list{columns:2 360px;column-gap:42px}.sources-list a{display:block;break-inside:avoid;padding:9px 0;border-bottom:1px solid var(--faint);font:500 11px/1.5 var(--mono);word-break:break-word;color:var(--muted)}
+    .footer{padding:36px 0 20px;color:var(--muted);font:500 11px var(--mono);display:flex;justify-content:space-between;gap:20px}
+    .k{color:var(--green)}
+    @media(max-width:980px){
+      .mast{grid-template-columns:1fr;gap:38px}.thesis{max-width:650px}.summary{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}
+      .hardware,.grid-2{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr 1fr}.stack{grid-template-columns:1fr 1fr}.stack .layer:last-child{grid-column:1/-1}.paper-numbers{grid-template-columns:repeat(3,1fr)}.paper-num:nth-child(n+4){border-top:1px solid #354137}.security-layers{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:720px){
+      .shell,main,.jump{padding-left:18px;padding-right:18px}.mast{padding-top:45px}.jump{flex-wrap:wrap;gap:0;padding-top:5px;padding-bottom:5px}.jump .label{width:100%;padding:4px 0 1px}.jump a{padding:5px 9px 4px}.section-head{grid-template-columns:1fr;gap:5px}.section-no{padding:0}.grid-3,.paper-list,.directions,.verdict{grid-template-columns:1fr}.verdict>div+div{border-left:0;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent)}
+      .timeline{grid-template-columns:1fr;border-top:0;border-left:2px solid var(--ink);margin-left:5px}.time{padding:0 0 28px 25px}.time:before{top:4px;left:-8px}
+      .pipeline{grid-template-columns:1fr}.arrow{height:38px;transform:rotate(90deg)}.architecture{grid-template-columns:1fr}.arch-arrow{text-align:center;transform:rotate(90deg)}
+      .paper-numbers{grid-template-columns:1fr 1fr}.paper-num:last-child{grid-column:1/-1}.model-family{grid-template-columns:1fr;gap:8px}.security-layers{grid-template-columns:1fr}.openq{grid-template-columns:1fr;gap:4px}.footer{flex-direction:column}
+      .tools,.tools tbody,.tools tr,.tools td{display:block;width:100%}.tools thead{display:none}.tools tr{padding:16px 0;border-bottom:1px solid var(--line)}.tools td{border:0;padding:5px 0}.tools td:before{content:attr(data-label);display:block;font:600 9px var(--mono);text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+      .compare-row{grid-template-columns:125px 1fr 58px;gap:10px}.chip{padding:24px}.specs{grid-template-columns:1fr}.stack{grid-template-columns:1fr}.stack .layer:last-child{grid-column:auto}.layer{min-height:auto}
+    }
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+  <div class="topline"></div><div class="reading-progress" id="progress"></div>
+  <div class="shell">
+    <header class="mast">
+      <div>
+        <p class="dateline">Research brief · 27 September 2026</p>
+        <h1>Three bets define NVIDIA’s agent era</h1>
+        <p class="deck">Vera Rubin turns tokens into an infrastructure problem. NeMo, Molt and Polar turn agent behavior into a trainable systems problem. Skill2Env turns collective know-how into executable reinforcement-learning environments.</p>
+        <div class="meta"><span><b>Scope</b> hardware → models → training → serving → safety</span><span><b>Evidence</b> primary sources preferred</span><span><b>Audience</b> technical</span></div>
+      </div>
+      <aside class="thesis">
+        <h2>Executive thesis</h2>
+        <p>NVIDIA is no longer selling only accelerators. Its 2026 roadmap is a vertically coupled “agent factory”: hardware, network, models, environments, rollout systems, serving, and policy enforcement.</p>
+      </aside>
+    </header>
+    <div class="summary" aria-label="Roadmap summary metrics">
+      <div class="metric"><strong>H2 ’26</strong><span>Vera Rubin partner systems</span></div>
+      <div class="metric"><strong>7,971</strong><span>Skill2Env executable tasks</span></div>
+      <div class="metric"><strong>+4.7 pp</strong><span>Terminal-Bench 2.1 gain</span></div>
+      <div class="metric"><strong>7×</strong><span>Dynamo requests served claim</span></div>
+    </div>
+  </div>
+
+  <nav class="jump-wrap" aria-label="Report sections"><div class="jump" id="jump">
+    <span class="label">INDEX</span><a href="#map">Roadmap</a><a href="#hardware">Hardware</a><a href="#training">Training</a><a href="#papers">Papers</a><a href="#serving">Serving</a><a href="#people">Researchers</a><a href="#models">Models</a><a href="#tools">Tools</a><a href="#security">Security</a><a href="#directions">Directions</a><a href="#sources">Sources</a>
+  </div></nav>
+
+  <main>
+    <section id="map">
+      <div class="section-head"><div class="section-no">00 / MAP</div><div class="section-title"><h2>The roadmap in one system</h2><p>Read NVIDIA’s announcements as one feedback loop: more capable infrastructure makes longer agent rollouts affordable; those rollouts create better policies; those policies drive more inference demand.</p></div></div>
+      <div class="stack" aria-label="Five-layer AI agent stack">
+        <div class="layer"><span>01 · COMPUTE</span><h4>Vera Rubin + NVLink 6</h4><p>NVFP4 throughput, HBM4 bandwidth, rack-scale fabric.</p></div>
+        <div class="layer"><span>02 · TRAIN</span><h4>NeMo RL / Molt</h4><p>Production recipes and a lean PyTorch-native research stack.</p></div>
+        <div class="layer"><span>03 · EXPERIENCE</span><h4>Gym / Polar / Skill2Env</h4><p>Environments, harness-faithful rollouts, verifiable rewards.</p></div>
+        <div class="layer"><span>04 · SERVE</span><h4>Dynamo / NIM / TRT-LLM</h4><p>Disaggregated prefill–decode, routing, optimized kernels.</p></div>
+        <div class="layer"><span>05 · GOVERN</span><h4>OpenShell / Guardrails / garak</h4><p>Sandbox, runtime policy, safety models, adversarial testing.</p></div>
+      </div>
+      <div class="signal"><strong>The connective tissue is the agent harness.</strong><p>Polar captures token-faithful trajectories from arbitrary harnesses; NeMo Gym exposes harnesses and sandboxes during evaluation and RL; Dynamo consumes “agent hints” during serving. The same agent loop now shapes training, evaluation and inference.</p></div>
+      <div class="timeline" aria-label="2026 release timeline">
+        <div class="time"><span class="date">JAN 2026</span><h4>Rubin detailed</h4><p>CES framing; GDPO paper appears.</p></div>
+        <div class="time"><span class="date">MAR</span><h4>Platform convergence</h4><p>GTC: Rubin production, Dynamo 1.0 GA, Nemotron Super.</p></div>
+        <div class="time"><span class="date">MAY</span><h4>Polar</h4><p>Harness-as-environment rollout paper submitted.</p></div>
+        <div class="time"><span class="date">JUL</span><h4>Molt</h4><p>Lean agentic-RL stack; NeMo RL v0.7.</p></div>
+        <div class="time"><span class="date">SEP</span><h4>Skill2Env</h4><p>Collective skills compiled into ~8K environments.</p></div>
+      </div>
+    </section>
+
+    <section id="hardware">
+      <div class="section-head"><div class="section-no">01 / HARDWARE</div><div class="section-title"><h2>Rubin is optimized for the economics of agents</h2><p>The architectural story is bandwidth, low-precision throughput and a larger coherent rack. NVIDIA says the payoff is lower cost per token and higher inference throughput; these remain vendor claims on selected workloads.</p></div></div>
+      <div class="hardware">
+        <div class="chip">
+          <div class="chip-title"><h3>Rubin GPU package</h3><span>TSMC 3 nm · H2 2026 systems</span></div>
+          <div class="specs">
+            <div class="spec"><b>336B</b><span>transistors, two compute dies</span></div>
+            <div class="spec"><b>288 GB</b><span>HBM4, up to 22 TB/s</span></div>
+            <div class="spec"><b>50 PF</b><span>NVFP4 inference per package</span></div>
+            <div class="spec"><b>35 PF</b><span>NVFP4 training per package</span></div>
+            <div class="spec"><b>3.6 TB/s</b><span>NVLink 6 GPU-to-GPU</span></div>
+            <div class="spec"><b>224 / 896</b><span>SMs / Tensor Cores</span></div>
+          </div>
+        </div>
+        <div class="copy">
+          <h3>One platform, six components</h3>
+          <p>Vera Rubin joins the 88-core Vera Arm CPU, Rubin GPU, NVLink 6 switches, ConnectX-9 SuperNICs, BlueField-4 DPUs and Spectrum-6 Ethernet. Vera and Rubin share a coherent memory view over 1.8 TB/s NVLink-C2C.</p>
+          <ul>
+            <li><b>DGX Vera Rubin NVL72:</b> 72 GPUs + 36 CPUs; 3.6 EFLOPS NVFP4 inference and 2.5 EFLOPS training per rack.</li>
+            <li><b>Spectrum-6:</b> 102.4 Tb/s switch capacity; silicon-photonics options target lower optical power.</li>
+            <li><b>Quantum-X:</b> 144×800G ports, 115.2 Tb/s aggregate.</li>
+            <li><b>Next:</b> Rubin Ultra / Kyber NVL576 in H2 2027; Feynman + Rosa CPU follows in 2028.</li>
+          </ul>
+          <p><a class="source" href="https://tech-insider.org/nvidia-vera-rubin-platform-gtc-2026-rubin-r100-gpu/" target="_blank" rel="noreferrer">RUBIN SPECS ↗</a> &nbsp; <a class="source" href="https://www.networkworld.com/article/4200086/nvidia-unveils-spectrum-x-networking-platform-designed-to-connect-millions-of-gpus.html" target="_blank" rel="noreferrer">NETWORKING ↗</a></p>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:28px">
+        <div class="panel flat"><span class="tag">Vendor claim</span><h3>5× inference throughput</h3><p>Plus ~10× lower token cost and ~8× performance per watt versus Blackwell, on NVIDIA-selected workloads. Independent benchmarks were not available in the research set.</p></div>
+        <div class="panel flat"><span class="tag">System signal</span><h3>Networking is strategic</h3><p>Networking revenue reached $11B in the referenced quarter, up 263% year over year. That makes fabrics, DPUs and CPO part of the product—not accessories.</p></div>
+        <div class="panel flat"><span class="tag">Market color</span><h3>Supply remains a constraint</h3><p>One secondary source reports HBM4 sold out through 2026 and 36–52 week GPU lead times. This was not NVIDIA-confirmed.</p></div>
+      </div>
+      <div class="caveat"><b>Evidence note.</b> The canonical July 21 NVIDIA Rubin technical blog could not be fetched during research. Hardware specifications above were corroborated across multiple secondary sources; the “Groq LPU decode offload” claim appears in one TrendForce piece only and is not treated as confirmed.</div>
+    </section>
+
+    <section id="training">
+      <div class="section-head"><div class="section-no">02 / TRAINING</div><div class="section-title"><h2>Two training stacks, one agentic-RL thesis</h2><p>NeMo RL is the production path; Molt is the compact research path. NeMo Gym and Polar supply the environments and token-faithful experience that both paths need.</p></div></div>
+      <div class="grid-2">
+        <article class="panel"><span class="tag">Production stack</span><h3>NeMo Framework + RL + Gym</h3><p>Framework 26.x builds on PyTorch and Megatron-Core with 5D parallelism, FP8/MXFP8 and MoE parallel folding. NeMo RL supports PPO, DPO, REINFORCE/GRPO, GDPO, MOPD and CISPO. Gym v0.6 adds external harnesses during RL with exact token-ID preservation and rollout diagnostics.</p><div class="model-chips"><span class="chiplet">Megatron Bridge</span><span class="chiplet">NeMo Customizer</span><span class="chiplet">70+ environments</span><span class="chiplet">7 sandbox providers</span></div></article>
+        <article class="panel"><span class="tag">Research stack</span><h3>Molt: ~9K lines, frontier scale</h3><p>Ray handles placement and an asynchronous queue; vLLM generates rollouts; NVIDIA AutoModel + FSDP2 trains the policy. The stack supports REINFORCE, RLOO, GRPO, Dr.GRPO and GAE, plus optional PPO critic and on-policy distillation.</p><div class="model-chips"><span class="chiplet">Apache-2.0</span><span class="chiplet">HF-native</span><span class="chiplet">MoE-native</span><span class="chiplet">multimodal</span></div></article>
+      </div>
+      <div class="pipeline" aria-label="Agentic reinforcement learning loop">
+        <div class="stage"><b>1 · ENVIRONMENT</b><h4>Task + sandbox</h4><p>Executable world, tools, tests, rubric and isolation policy.</p></div><div class="arrow">→</div>
+        <div class="stage"><b>2 · HARNESS</b><h4>Agent loop</h4><p>Codex, Claude Code, Pi or another shipping harness runs unchanged.</p></div><div class="arrow">→</div>
+        <div class="stage"><b>3 · EXPERIENCE</b><h4>Token-faithful trace</h4><p>Prompt, token IDs, logprobs, tool calls and rewards are captured.</p></div><div class="arrow">→</div>
+        <div class="stage"><b>4 · UPDATE</b><h4>Policy optimization</h4><p>Outcome rewards and optional rubric judges drive the next policy.</p></div>
+      </div>
+      <div class="grid-3">
+        <div class="panel flat"><span class="tag">Train / infer consistency</span><h3>Never train on foreign tokens</h3><p>Molt’s central invariant is that the optimizer only sees tokens generated by the policy. It tracks vLLM mismatch and supports router replay or freezing for MoE consistency.</p></div>
+        <div class="panel flat"><span class="tag">Async scale</span><h3>Overlap rollout and learning</h3><p>Molt’s distributed experience store removes a central memory bottleneck; Polar’s gateways prewarm runtimes, execute agents, evaluate and callback asynchronously.</p></div>
+        <div class="panel flat"><span class="tag">Acceleration</span><h3>Speculative decoding</h3><p>NVIDIA reported 1.8× rollout-generation speedup at 8B and projected 2.5× end-to-end at 235B, while computing training signals against the verifier policy.</p></div>
+      </div>
+      <p style="margin-top:24px"><a class="source" href="https://arxiv.org/abs/2607.21653" target="_blank" rel="noreferrer">MOLT PAPER ↗</a> &nbsp; <a class="source" href="https://github.com/NVIDIA-NeMo/labs-molt" target="_blank" rel="noreferrer">MOLT CODE ↗</a> &nbsp; <a class="source" href="https://github.com/nvidia-nemo/rl" target="_blank" rel="noreferrer">NEMO RL ↗</a> &nbsp; <a class="source" href="https://github.com/nvidia-nemo/gym" target="_blank" rel="noreferrer">NEMO GYM ↗</a></p>
+    </section>
+
+    <section id="papers">
+      <div class="section-head"><div class="section-no">03 / RESEARCH</div><div class="section-title"><h2>The paper trail: from rollout plumbing to collective skills</h2><p>The year’s papers form a sequence: decouple rollout infrastructure, support any harness, simplify training, then mass-produce environments from public know-how.</p></div></div>
+      <article class="paper-feature">
+        <span class="tag">September 2026 · NVLabs</span>
+        <h3>Reinforcing Agents with Collective Skills</h3>
+        <p class="sub">Skill2Env compiles public Agent Skills into executable Harbor tasks. A Codex planner extracts workflows; a creator diversifies tasks and writes tests; a host gate requires an oracle to pass and a no-op agent to fail. RL then optimizes a Qwen3.8-27B agent on verifiable outcomes.</p>
+        <div class="paper-numbers">
+          <div class="paper-num"><b>~3.4K</b><span>input skills</span></div><div class="paper-num"><b>7,971</b><span>generated tasks</span></div><div class="paper-num"><b>2,400</b><span>RL task subset</span></div><div class="paper-num"><b>300</b><span>training steps</span></div><div class="paper-num"><b>&gt;$90K</b><span>generation API cost</span></div>
+        </div>
+        <div class="paper-links"><a href="https://www.alphaxiv.org/abs/2609.reinforcing-agents-collective-skills" target="_blank" rel="noreferrer">alphaXiv report ↗</a><a href="https://github.com/NVlabs/Skill2Env" target="_blank" rel="noreferrer">code ↗</a><a href="https://academy.dair.ai/papers/reinforcing-agents-with-collective-skills" target="_blank" rel="noreferrer">analysis ↗</a></div>
+      </article>
+      <div class="grid-2" style="margin-top:28px">
+        <div>
+          <h3 style="font:700 24px var(--serif);margin:0 0 12px">Outcome-only RL results</h3>
+          <div class="compare" aria-label="Skill2Env benchmark improvements">
+            <div class="compare-row"><span>TB 2.1 · base</span><div class="bar"><i style="width:49.4%"></i></div><b>49.4%</b></div>
+            <div class="compare-row"><span>TB 2.1 · trained</span><div class="bar"><i style="width:54.1%"></i></div><b>54.1%</b></div>
+            <div class="compare-row"><span>S2E · base</span><div class="bar"><i style="width:33.4%"></i></div><b>33.4%</b></div>
+            <div class="compare-row"><span>S2E · trained</span><div class="bar"><i style="width:37.7%"></i></div><b>37.7%</b></div>
+          </div>
+        </div>
+        <div class="panel flat"><span class="tag">Important tension</span><h3>Process alignment ≠ benchmark success</h3><p>Adding a GPT-6 Astra judge score at weight 0.2 raised preference for rubric-aligned trajectories to 73.0% versus 24.0% for base, yet produced smaller benchmark gains. The paper exposes a central open problem: optimizing task completion can diverge from following the expert process.</p></div>
+      </div>
+      <div class="caveat"><b>Reproducibility note.</b> The report has no confirmed canonical arXiv ID, and its full author list was not verified. The prior reproduction attempt found the public SkillHub release contains 2,396 skills and was regenerated with a different model for legal reasons; the private S2EBench and 15,968 GLM-5.3 trajectories were not published. The headline 300-step 27B result therefore cannot be independently recreated from public artifacts alone.</div>
+      <div class="paper-list">
+        <article class="paper"><span class="date">22 JUL · REV. 22 SEP</span><h3>Molt: A Scalable PyTorch-Native Training Framework for Agentic RL</h3><p class="byline">Jian Hu, Huiying Li, Hao Zhang, Binfeng Xu, Yifan Zhang, Shaokun Zhang, Hemil Desai, Michael Demoret, Pavlo Molchanov, Jan Kautz, Yi Dong</p><p>A compact HF/PyTorch-native stack with asynchronous training, distributed experience storage and validated trillion-parameter scale.</p><a class="source" href="https://arxiv.org/abs/2607.21653" target="_blank" rel="noreferrer">ARXIV:2607.21653 ↗</a></article>
+        <article class="paper"><span class="date">22 MAY 2026</span><h3>Polar: Agentic RL on Any Harness at Scale</h3><p class="byline">Binfeng Xu, Hao Zhang, Shaokun Zhang, Songyang Han, Mingjie Liu, Jian Hu, Shizhe Diao, Zhenghui Jin, Yunheng Zou, Michael Demoret, Jan Kautz, Yi Dong</p><p>An API proxy records exact model interactions while arbitrary harness code runs unchanged in an isolated runtime; training improvements vary sharply by harness.</p><a class="source" href="https://arxiv.org/abs/2605.24220" target="_blank" rel="noreferrer">ARXIV:2605.24220 ↗</a></article>
+        <article class="paper"><span class="date">MAR 2026</span><h3>ProRL Agent: Rollout-as-a-Service</h3><p class="byline">Hao Zhang*, Mingjie Liu*, Shaokun Zhang*, Songyang Han, Jian Hu, Zhenghui Jin, Yuchi Zhang, Shizhe Diao, Ximing Lu, Binfeng Xu, Zhiding Yu, Jan Kautz, Yi Dong</p><p>The infrastructure predecessor to Polar: an asynchronous INIT/RUN/EVAL pipeline with rootless HPC sandboxes.</p><a class="source" href="https://arxiv.org/pdf/2603.18815" target="_blank" rel="noreferrer">ARXIV:2603.18815 ↗</a></article>
+        <article class="paper"><span class="date">JAN 2026</span><h3>GDPO: Group reward-Decoupled Normalization</h3><p class="byline">NVIDIA research · supported in NeMo RL since March 2026</p><p>A multi-reward optimization method that decouples normalization across reward groups, expanding the post-training algorithm menu.</p><a class="source" href="https://arxiv.org/abs/2601.05242" target="_blank" rel="noreferrer">ARXIV:2601.05242 ↗</a></article>
+      </div>
+      <div class="signal"><strong>Landscape beyond NVIDIA.</strong><p>Microsoft Orchard (2607.21557), SkillRL (2602.08234), real-world skill evaluation (2604.04323), SkillsBench (2602.12670), CODESKILL (2605.25430) and SkillSmith (2608.08037) converge on the same agenda: train agents in deployed harnesses, compose or evolve skills, and reward both outcomes and process.</p></div>
+    </section>
+
+    <section id="serving">
+      <div class="section-head"><div class="section-no">04 / SERVING</div><div class="section-title"><h2>Dynamo makes inference a distributed control problem</h2><p>Agent workloads are long, bursty and KV-heavy. NVIDIA’s answer is to split phases, route requests with cache awareness and treat memory as a tiered system.</p></div></div>
+      <div class="architecture" aria-label="Dynamo serving architecture">
+        <div class="arch-box"><h4>Encode / prefill</h4><p>Separate GPU pool builds the prompt’s KV state.</p></div><div class="arch-arrow">→</div>
+        <div class="arch-box"><h4>KV-aware router</h4><p>Routes around cache locality, queue state and agent hints.</p></div><div class="arch-arrow">→</div>
+        <div class="arch-box"><h4>Decode</h4><p>Dedicated pool generates tokens; memory can spill to S3 or Azure tiers.</p></div>
+      </div>
+      <div class="grid-3">
+        <div class="panel"><span class="tag">Dynamo 1.0 · GA 16 Mar</span><h3>Inference operating layer</h3><p>Open source, adopted by major clouds and reported in production at Perplexity, PayPal, Pinterest and Cursor. NVIDIA cites 7× requests served on Blackwell in SemiAnalysis InferenceX using DeepSeek R1-0528.</p></div>
+        <div class="panel"><span class="tag">NIM 2.x</span><h3>Packaged model services</h3><p>OpenAI-compatible container APIs bundle nim-llm, nimlib and vLLM; optimized profiles historically use TensorRT-LLM. Development is free through the Developer Program; enterprise containers are proprietary.</p></div>
+        <div class="panel"><span class="tag">TensorRT-LLM 1.x</span><h3>Peak-performance backend</h3><p>The PyTorch workflow is now the default experience, but the C++ runtime was open-sourced—not deprecated. July releases added EAGLE3 and fused kernels; GPT-OSS received day-zero support in August.</p></div>
+      </div>
+      <div class="signal"><strong>Agent-specific advantage.</strong><p>“Agent hints” communicate latency sensitivity and expected output length. Combined with NeMo Agent Toolkit, NVIDIA reports 4× lower time-to-first-token and 1.5× throughput on Llama 3.1/Hopper. Persistent KV caching helps repeated system prompts, RAG and multi-turn loops.</p></div>
+      <p style="margin-top:24px"><a class="source" href="https://github.com/nvidia/tensorrt-llm/blob/HEAD/docs/source/release-notes.md" target="_blank" rel="noreferrer">TRT-LLM RELEASES ↗</a> &nbsp; <a class="source" href="https://docs.nvidia.com/nemo/nemo-microservices/" target="_blank" rel="noreferrer">NEMO MICROSERVICES ↗</a></p>
+    </section>
+
+    <section id="people">
+      <div class="section-head"><div class="section-no">05 / PEOPLE</div><div class="section-title"><h2>The research network behind the stack</h2><p>The same cluster of NVIDIA researchers recurs across ProRL, Polar, Molt and Skill2Env, linking systems engineering with RL methodology.</p></div></div>
+      <div class="researchers">
+        <article class="person"><h3>Binfeng Xu</h3><span class="role">NVLABS / NEMO LABS</span><p>First author of Polar and Skill2Env; co-author of Molt and ProRL Agent. Central to the harness-as-environment research line. No public bio was located.</p></article>
+        <article class="person"><h3>Yi Dong</h3><span class="role">NVIDIA · NEMO LABS</span><p>Corresponding author on Molt and co-author across Polar, Skill2Env and ProRL Agent.</p></article>
+        <article class="person"><h3>Jan Kautz</h3><span class="role">NVIDIA RESEARCH</span><p>Senior co-author across all four agentic-RL systems papers, connecting the research program.</p></article>
+        <article class="person"><h3>Jian Hu</h3><span class="role">NVIDIA</span><p>First author of Molt; co-author of Polar and ProRL Agent.</p></article>
+        <article class="person"><h3>Hao Zhang</h3><span class="role">NVIDIA</span><p>First author of ProRL Agent; co-author of Polar and Molt.</p></article>
+        <article class="person"><h3>Shaokun Zhang</h3><span class="role">NVIDIA</span><p>Co-author on Molt, Polar, ProRL Agent and Skill2Env.</p></article>
+        <article class="person"><h3>Mingjie Liu</h3><span class="role">NVIDIA</span><p>Co-first author of ProRL Agent and co-author of Polar, focused on rollout infrastructure.</p></article>
+        <article class="person"><h3>Shizhe Diao</h3><span class="role">NVIDIA</span><p>Co-author of ProRL Agent and Polar.</p></article>
+        <article class="person"><h3>Michael Demoret</h3><span class="role">NVIDIA</span><p>Co-author of Molt and Polar.</p></article>
+        <article class="person"><h3>Pavlo Molchanov</h3><span class="role">NVIDIA</span><p>Molt co-author; efficient-AI systems researcher.</p></article>
+        <article class="person"><h3>Leon Derczynski</h3><span class="role">GARAK CREATOR</span><p>Created the LLM vulnerability scanner now maintained by NVIDIA’s NeMo Guardrails team.</p></article>
+        <article class="person"><h3>Jensen Huang</h3><span class="role">NVIDIA · CEO</span><p>Set the public roadmap at GTC 2026: Vera Rubin, enterprise agents and physical AI.</p></article>
+      </div>
+    </section>
+
+    <section id="models">
+      <div class="section-head"><div class="section-no">06 / MODELS</div><div class="section-title"><h2>Models are reference workloads for the platform</h2><p>NVIDIA’s model releases demonstrate the stack’s intended operating points: sparse activation, long context, low precision, reasoning control and multi-environment post-training.</p></div></div>
+      <div class="model-family"><h3>Nemotron-3</h3><div><p>Hybrid Mamba-2 MoE, 1M native context, reasoning toggle and multi-environment RL via NeMo Gym / NeMo RL. Nano is 30B-A3B; Super 120B-A12B; Ultra 550B-A55B; 3.5 Lightning followed in August.</p><div class="model-chips"><span class="chiplet">NVIDIA Open Model License</span><span class="chiplet">not OSI open source</span><span class="chiplet">NVFP4</span><span class="chiplet">MoE</span></div></div></div>
+      <div class="model-family"><h3>Nemotron Cascade</h3><div><p>Sequential domain-wise RL with RLHF before RLVR stages. Cascade-2-30B-A3B was released in March; NVIDIA reports gold-medal-level IMO and IOI 2025 performance.</p><div class="model-chips"><span class="chiplet">30B-A3B</span><span class="chiplet">reasoning</span><span class="chiplet">Cascade RL</span></div></div></div>
+      <div class="model-family"><h3>Physical AI</h3><div><p>Cosmos 3 unifies vision reasoning, world and action generation; GR00T N2 previews a robot VLA model; Alpamayo 1 is a 10B chain-of-thought VLA for autonomous vehicles. The broader coalition also includes BioNeMo and Earth-2.</p><div class="model-chips"><span class="chiplet">Cosmos OpenMDW-1.1</span><span class="chiplet">GR00T mixed licenses</span><span class="chiplet">robotics + AV</span></div></div></div>
+      <div class="model-family"><h3>Agent-RL bases</h3><div><p>Qwen3.x powers Skill2Env and Polar experiments; GLM, DeepSeek, Kimi, MiniMax, MiMo and Gemma broaden the supported ecosystem. Licenses vary by tier: Qwen smaller models are Apache-2.0, DeepSeek V4 MIT, GLM-5.3 and Kimi K3 custom.</p><div class="model-chips"><span class="chiplet">Qwen3.8-27B · Skill2Env</span><span class="chiplet">Qwen3.5-4B · Polar</span><span class="chiplet">GLM-5.x</span><span class="chiplet">Kimi K2.6 / K3</span></div></div></div>
+      <div class="caveat"><b>License precision matters.</b> “Open-weight” is not the same as OSI-approved open source. NVIDIA’s own model licenses are permissive for many commercial uses but include field-of-use or redistribution restrictions.</div>
+    </section>
+
+    <section id="tools">
+      <div class="section-head"><div class="section-no">07 / TOOLCHAIN</div><div class="section-title"><h2>Who owns each layer—and how mature is it?</h2><p>Filter the operating map. “Research” means promising but still changing; “mature” means established infrastructure, not necessarily a stable agentic interface.</p></div></div>
+      <div class="tool-controls" role="group" aria-label="Filter tools by maintainer"><button class="filter" data-filter="all" aria-pressed="true">ALL</button><button class="filter" data-filter="nvidia" aria-pressed="false">NVIDIA</button><button class="filter" data-filter="community" aria-pressed="false">COMMUNITY</button></div>
+      <table class="tools">
+        <thead><tr><th>Tool</th><th>Role</th><th>Maintainer</th><th>Maturity</th></tr></thead>
+        <tbody>
+          <tr data-owner="nvidia"><td data-label="Tool">Molt</td><td data-label="Role">PyTorch-native agentic RL; Ray + vLLM + AutoModel/FSDP2.</td><td data-label="Maintainer" class="owner">NVIDIA · NeMo Labs</td><td data-label="Maturity" class="maturity">Research · v0.1</td></tr>
+          <tr data-owner="nvidia"><td data-label="Tool">Polar</td><td data-label="Role">Rollout-as-a-service for arbitrary harnesses; token-faithful proxy.</td><td data-label="Maintainer" class="owner">NVIDIA · NeMo</td><td data-label="Maturity" class="maturity">Emerging</td></tr>
+          <tr data-owner="nvidia"><td data-label="Tool">NeMo Gym</td><td data-label="Role">Evaluation and RL environment hub; harness and sandbox adapters.</td><td data-label="Maintainer" class="owner">NVIDIA · NeMo</td><td data-label="Maturity" class="maturity">Fast-moving · v0.6</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Pi</td><td data-label="Role">Minimal coding-agent harness with read, bash, edit and write tools.</td><td data-label="Maintainer" class="owner">Earendil Works</td><td data-label="Maturity" class="maturity">Mature-ish · v0.84</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Harbor</td><td data-label="Role">Agent evaluation framework and task format; Terminal-Bench launcher.</td><td data-label="Maintainer" class="owner">Community</td><td data-label="Maturity" class="maturity">Production eval</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Terminal-Bench 2.1</td><td data-label="Role">Standard benchmark for terminal agents.</td><td data-label="Maintainer" class="owner">Terminal-Bench team</td><td data-label="Maturity" class="maturity">Standard benchmark</td></tr>
+          <tr data-owner="nvidia"><td data-label="Tool">S2EBench</td><td data-label="Role">79 hand-verified SkillHub tasks used as held-out evaluation.</td><td data-label="Maintainer" class="owner">NVLabs</td><td data-label="Maturity" class="maturity">Private · new</td></tr>
+          <tr data-owner="community"><td data-label="Tool">vLLM</td><td data-label="Role">High-throughput serving and standard rollout engine.</td><td data-label="Maintainer" class="owner">Community · Berkeley</td><td data-label="Maturity" class="maturity">Mature</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Ray</td><td data-label="Role">Distributed placement, queues and orchestration.</td><td data-label="Maintainer" class="owner">Community · Anyscale</td><td data-label="Maturity" class="maturity">Mature</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Apptainer</td><td data-label="Role">Rootless HPC container sandboxing.</td><td data-label="Maintainer" class="owner">Linux Foundation</td><td data-label="Maturity" class="maturity">Mature</td></tr>
+          <tr data-owner="community"><td data-label="Tool">Codex CLI</td><td data-label="Role">External coding harness and Skill2Env planner / creator agent.</td><td data-label="Maintainer" class="owner">OpenAI</td><td data-label="Maturity" class="maturity">Product CLI</td></tr>
+          <tr data-owner="nvidia"><td data-label="Tool">OpenShell</td><td data-label="Role">Deny-by-default secure runtime using Landlock, seccomp and network namespaces.</td><td data-label="Maintainer" class="owner">NVIDIA</td><td data-label="Maturity" class="maturity">New · mid-2026</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="security">
+      <div class="section-head"><div class="section-no">08 / SECURITY</div><div class="section-title"><h2>Security moves into the runtime</h2><p>NVIDIA’s 2026 security story is tooling-led rather than paper-led: constrain execution, mediate model interactions, classify content, then attack the assembled system.</p></div></div>
+      <div class="security-layers">
+        <article class="security"><h3>1 · Isolate</h3><p><b>OpenShell</b> applies Landlock, seccomp, network namespaces, deny-by-default file/network permissions, live policy updates and audit trails. NeMo Gym also supports Apptainer, Docker, Enroot, Daytona, Fargate and OpenSandbox.</p></article>
+        <article class="security"><h3>2 · Mediate</h3><p><b>NeMo Guardrails</b> provides input, dialog, retrieval, execution and output rails. Colang 2.0 is the recommended event-driven DSL; IORails intercept OpenAI-style tool calls.</p></article>
+        <article class="security"><h3>3 · Classify</h3><p><b>NemoGuard NIMs</b> package content-safety and topic-boundary classifiers for production. Nemotron-3.5 Content Safety arrived in June.</p></article>
+        <article class="security"><h3>4 · Attack</h3><p><b>garak</b> offers 120+ probe families spanning jailbreaks, encoding attacks, data leakage, prompt injection and tool misuse. NeMo Agent Toolkit adds workflow-level red-team scenarios.</p></article>
+      </div>
+      <div class="grid-2" style="margin-top:28px">
+        <div class="panel flat"><span class="tag">Lifecycle control</span><h3>NemoClaw posture profiles</h3><p>Development, internal and production profiles package the agent lifecycle around blueprints, routed inference and policy. Canonical and Red Hat are integrating OpenShell.</p></div>
+        <div class="panel flat"><span class="tag">Context</span><h3>External red-team tools</h3><p>Microsoft PyRIT and Confident AI DeepTeam cover automated multi-turn attacks and broad vulnerability taxonomies; OWASP LLM Top 10 remains the shared language for risk.</p></div>
+      </div>
+      <div class="caveat"><b>Research gap.</b> This sweep found no NVIDIA 2026 research paper specifically devoted to prompt-injection or tool-use defenses. The substantive story is the integrated toolchain above. NeMo Guardrails’ exact latest version also conflicted across sources (0.21.x versus 0.24), though active development is clear.</div>
+      <p style="margin-top:24px"><a class="source" href="https://github.com/nvidia-nemo/guardrails" target="_blank" rel="noreferrer">GUARDRAILS ↗</a> &nbsp; <a class="source" href="https://github.com/NVIDIA/garak" target="_blank" rel="noreferrer">GARAK ↗</a></p>
+    </section>
+
+    <section id="directions">
+      <div class="section-head"><div class="section-no">09 / SYNTHESIS</div><div class="section-title"><h2>Eight directions to watch</h2><p>These are inferences from the integrated roadmap—not separately announced product commitments.</p></div></div>
+      <div class="directions">
+        <article class="direction"><div><h3>Environments replace preference labels</h3><p>Tool execution, tests and judges become the dominant source of scalable reward for agents.</p></div></article>
+        <article class="direction"><div><h3>Skills become training infrastructure</h3><p>Expert-authored instructions are compiled into executable worlds, pushing research toward better generation gates and credit assignment.</p></div></article>
+        <article class="direction"><div><h3>Train the exact harness that ships</h3><p>Polar’s proxy pattern points toward framework-agnostic RL over production agent loops, not simplified lab replicas.</p></div></article>
+        <article class="direction"><div><h3>Small stacks challenge giant frameworks</h3><p>Molt argues that auditable, ~9K-line research systems can still reach frontier-scale policies.</p></div></article>
+        <article class="direction"><div><h3>Inference becomes the agent bottleneck</h3><p>Disaggregated prefill/decode, KV tiers and speculative decoding target the cost of long-horizon, multi-turn rollouts.</p></div></article>
+        <article class="direction"><div><h3>NVFP4 becomes the economic default</h3><p>Rubin silicon, TRT-LLM kernels and Nemotron checkpoints align around 4-bit throughput per dollar.</p></div></article>
+        <article class="direction"><div><h3>Agent RL crosses into physical AI</h3><p>Cosmos and GR00T connect verifiable environments, simulation and action generation for robotics and autonomous vehicles.</p></div></article>
+        <article class="direction"><div><h3>Safety becomes an infrastructure primitive</h3><p>Sandbox policy, runtime interception and adversarial evaluation move from optional wrappers into the default deployment shape.</p></div></article>
+      </div>
+      <div class="verdict">
+        <div><h3>What is strong</h3><p>The research program is unusually coherent: the same teams connect environments, harness capture, asynchronous rollout, compact training and optimized serving. Several core projects are Apache-2.0 with published papers and code.</p></div>
+        <div><h3>What remains unproven</h3><p>Many performance figures are vendor claims; Skill2Env’s strongest result is not fully reproducible from public assets; process alignment still conflicts with benchmark success; and the security agenda lacks a comparable 2026 research-paper centerpiece.</p></div>
+      </div>
+    </section>
+
+    <section id="open">
+      <div class="section-head"><div class="section-no">10 / OPEN QUESTIONS</div><div class="section-title"><h2>What the evidence does not settle</h2><p>A roadmap is most useful when its uncertainties remain visible.</p></div></div>
+      <div class="openq"><b>SKILL2ENV</b><p>Can a legally reproducible public dataset recover the reported RL gains, and can S2EBench or an equivalent held-out benchmark be released?</p></div>
+      <div class="openq"><b>REWARD DESIGN</b><p>How should systems combine test success and process compliance without sacrificing either?</p></div>
+      <div class="openq"><b>HARNESS EFFECT</b><p>Polar’s gains vary from +22.6 to +0.6 points across harnesses. Which harness behaviors cause the spread?</p></div>
+      <div class="openq"><b>SERVING ECONOMICS</b><p>Do Dynamo’s 7× and Rubin’s 10× cost-per-token claims hold across real multi-agent workloads and independent benchmarks?</p></div>
+      <div class="openq"><b>SECURITY</b><p>Can sandboxing, runtime rails and scanning stop cross-layer attacks involving prompt injection, tools and persistent agent state?</p></div>
+      <div class="openq"><b>LICENSING</b><p>Will custom model licenses slow enterprise composition even as the surrounding infrastructure remains open source?</p></div>
+    </section>
+
+    <section id="sources">
+      <div class="section-head"><div class="section-no">11 / SOURCES</div><div class="section-title"><h2>Selected primary and corroborating sources</h2><p>Compiled from web research on 27 September 2026. “Verified” paper pages were opened directly; many product details were corroborated through indexed official repositories and secondary reporting.</p></div></div>
+      <div class="sources-list">
+        <a href="https://arxiv.org/abs/2607.21653" target="_blank" rel="noreferrer">Molt paper · arXiv:2607.21653</a>
+        <a href="https://arxiv.org/abs/2605.24220" target="_blank" rel="noreferrer">Polar paper · arXiv:2605.24220</a>
+        <a href="https://arxiv.org/pdf/2603.18815" target="_blank" rel="noreferrer">ProRL Agent · arXiv:2603.18815</a>
+        <a href="https://arxiv.org/abs/2601.05242" target="_blank" rel="noreferrer">GDPO · arXiv:2601.05242</a>
+        <a href="https://www.alphaxiv.org/abs/2609.reinforcing-agents-collective-skills" target="_blank" rel="noreferrer">Reinforcing Agents with Collective Skills · alphaXiv</a>
+        <a href="https://github.com/NVlabs/Skill2Env" target="_blank" rel="noreferrer">NVLabs / Skill2Env</a>
+        <a href="https://github.com/NVIDIA-NeMo/labs-molt" target="_blank" rel="noreferrer">NVIDIA-NeMo / labs-molt</a>
+        <a href="https://github.com/NVIDIA-NeMo/ProRL-Agent-Server" target="_blank" rel="noreferrer">NVIDIA-NeMo / ProRL-Agent-Server</a>
+        <a href="https://github.com/nvidia-nemo/rl" target="_blank" rel="noreferrer">NeMo RL</a>
+        <a href="https://github.com/nvidia-nemo/gym" target="_blank" rel="noreferrer">NeMo Gym</a>
+        <a href="https://github.com/nvidia-nemo/megatron-bridge" target="_blank" rel="noreferrer">Megatron Bridge</a>
+        <a href="https://github.com/nvidia-nemo/guardrails" target="_blank" rel="noreferrer">NeMo Guardrails</a>
+        <a href="https://github.com/NVIDIA/garak" target="_blank" rel="noreferrer">garak</a>
+        <a href="https://docs.nvidia.com/nemo/nemo-microservices/" target="_blank" rel="noreferrer">NeMo microservices documentation</a>
+        <a href="https://github.com/nvidia/tensorrt-llm/blob/HEAD/docs/source/release-notes.md" target="_blank" rel="noreferrer">TensorRT-LLM release notes</a>
+        <a href="https://research.nvidia.com/labs/nemotron/" target="_blank" rel="noreferrer">NVIDIA Nemotron research</a>
+        <a href="https://tech-insider.org/nvidia-vera-rubin-platform-gtc-2026-rubin-r100-gpu/" target="_blank" rel="noreferrer">Vera Rubin architecture overview</a>
+        <a href="https://www.networkworld.com/article/4200086/nvidia-unveils-spectrum-x-networking-platform-designed-to-connect-millions-of-gpus.html" target="_blank" rel="noreferrer">Spectrum-X networking overview</a>
+        <a href="https://www.techpowerup.com/334337/nvidia-commercializes-silicon-photonics-with-infiniband-and-ethernet-switches" target="_blank" rel="noreferrer">Quantum-X and Spectrum-X CPO</a>
+        <a href="https://www.trendforce.com/presscenter/news/20260318-12976.html" target="_blank" rel="noreferrer">GTC 2026 inference overview · single-source Groq claim</a>
+        <a href="https://academy.dair.ai/papers/reinforcing-agents-with-collective-skills" target="_blank" rel="noreferrer">DAIR analysis of Skill2Env</a>
+      </div>
+    </section>
+
+    <footer class="footer"><span>Evidence cutoff · 27 September 2026</span><span>Claims labeled as vendor, secondary, conflict or open where appropriate.</span></footer>
+  </main>
+
+  <script>
+    (function(){
+      var progress=document.getElementById('progress');
+      var navLinks=[].slice.call(document.querySelectorAll('#jump a'));
+      var sections=navLinks.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
+      function update(){
+        var max=document.documentElement.scrollHeight-innerHeight;
+        progress.style.width=(max>0?(scrollY/max)*100:0)+'%';
+        var y=scrollY+120, current=sections[0];
+        sections.forEach(function(s){if(s.offsetTop<=y)current=s;});
+        navLinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+current.id);});
+      }
+      addEventListener('scroll',update,{passive:true}); update();
+      var filters=[].slice.call(document.querySelectorAll('.filter'));
+      var rows=[].slice.call(document.querySelectorAll('.tools tbody tr'));
+      filters.forEach(function(btn){btn.addEventListener('click',function(){
+        var f=btn.getAttribute('data-filter');
+        filters.forEach(function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
+        rows.forEach(function(row){row.hidden=!(f==='all'||row.getAttribute('data-owner')===f);});
+      });});
+    })();
+  </script>
+</body>
+</html>

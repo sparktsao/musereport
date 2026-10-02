@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>AI 工程師能力評估研究</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f7f5;
+      --paper: #ffffff;
+      --ink: #17221d;
+      --ink-2: #46534c;
+      --muted: #68776f;
+      --line: #ced8d2;
+      --line-strong: #a8b8af;
+      --green: #0e6f50;
+      --green-2: #dcefe6;
+      --green-3: #bcdccc;
+      --orange: #c5532f;
+      --orange-2: #f8e5dd;
+      --amber: #96671b;
+      --amber-2: #f6eccf;
+      --blue: #245f85;
+      --blue-2: #dfedf5;
+      --shadow: 0 18px 50px rgba(28, 52, 40, .08);
+      --radius: 18px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101713;
+        --paper: #17211c;
+        --ink: #edf4ef;
+        --ink-2: #c1cec7;
+        --muted: #9eada5;
+        --line: #34423a;
+        --line-strong: #4e6257;
+        --green: #6bd0a9;
+        --green-2: #193c2f;
+        --green-3: #285a46;
+        --orange: #ff906d;
+        --orange-2: #45271f;
+        --amber: #efc66d;
+        --amber-2: #40351e;
+        --blue: #83c7ec;
+        --blue-2: #1c3442;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .22);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans TC", sans-serif;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+    }
+    a { color: inherit; }
+    button { font: inherit; }
+    .page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .topline { height: 4px; background: linear-gradient(90deg, var(--green) 0 54%, var(--orange) 54% 78%, var(--amber) 78%); }
+    .hero { padding: 70px 0 44px; position: relative; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 60px; align-items: end; }
+    .date {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--green); font: 600 12px/1.4 "IBM Plex Mono", monospace;
+      letter-spacing: .04em; margin-bottom: 18px;
+    }
+    .date::before { content: ""; width: 26px; height: 2px; background: currentColor; }
+    h1 { margin: 0; max-width: 850px; font-size: clamp(42px, 7vw, 78px); line-height: 1.06; letter-spacing: -.045em; font-weight: 800; }
+    h1 em { font-style: normal; color: var(--orange); }
+    .dek { max-width: 760px; margin: 26px 0 0; font-size: clamp(18px, 2.2vw, 23px); line-height: 1.55; color: var(--ink-2); }
+    .hero-note { border-top: 1px solid var(--line-strong); padding-top: 18px; }
+    .hero-note strong { display: block; font-size: 15px; margin-bottom: 8px; }
+    .hero-note p { margin: 0; color: var(--ink-2); font-size: 14px; }
+    .confidence { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 10px; font: 500 11px/1.4 "IBM Plex Mono", monospace; border: 1px solid var(--line); background: var(--paper); }
+    .tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .tag.verified { color: var(--green); }
+    .tag.index { color: var(--blue); }
+    .tag.vendor { color: var(--amber); }
+
+    .keyline { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 65%, transparent); }
+    .quick-nav { display: flex; flex-wrap: wrap; gap: 7px; padding: 13px 0; }
+    .quick-nav a { text-decoration: none; border-radius: 999px; padding: 7px 11px; color: var(--ink-2); font-size: 13px; }
+    .quick-nav a:hover, .quick-nav a:focus-visible { background: var(--green-2); color: var(--green); outline: none; }
+
+    main { padding: 44px 0 90px; }
+    section { scroll-margin-top: 20px; margin-top: 76px; }
+    section:first-child { margin-top: 0; }
+    .section-head { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 20px; align-items: start; margin-bottom: 28px; }
+    .section-no { color: var(--green); font: 600 13px/1.4 "IBM Plex Mono", monospace; padding-top: 9px; }
+    h2 { margin: 0; font-size: clamp(29px, 4vw, 46px); line-height: 1.15; letter-spacing: -.035em; }
+    .section-intro { margin: 10px 0 0; max-width: 790px; color: var(--ink-2); font-size: 17px; }
+
+    .thesis { display: grid; grid-template-columns: 1.25fr .75fr; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .thesis-main { padding: clamp(26px, 4vw, 48px); }
+    .thesis-main .label { color: var(--green); font: 600 12px/1.4 "IBM Plex Mono", monospace; }
+    .thesis-main h3 { margin: 12px 0 16px; max-width: 740px; font-size: clamp(26px, 3.2vw, 39px); line-height: 1.25; letter-spacing: -.025em; }
+    .thesis-main p { margin: 0; color: var(--ink-2); font-size: 17px; }
+    .thesis-side { padding: 32px; background: var(--green); color: #fff; display: grid; align-content: space-between; gap: 34px; }
+    @media (prefers-color-scheme: dark) { .thesis-side { color: #0b1912; } }
+    .thesis-side .big { font: 600 clamp(58px, 8vw, 94px)/.9 "IBM Plex Mono", monospace; letter-spacing: -.07em; }
+    .thesis-side p { margin: 8px 0 0; font-size: 15px; line-height: 1.5; }
+
+    .evidence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 24px; }
+    .evidence { background: var(--paper); padding: 23px; min-width: 0; }
+    .evidence .num { display: block; font: 600 clamp(27px, 3vw, 38px)/1 "IBM Plex Mono", monospace; color: var(--orange); letter-spacing: -.05em; }
+    .evidence strong { display: block; margin: 12px 0 7px; font-size: 14px; line-height: 1.4; }
+    .evidence p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .source-link { display: inline-block; margin-top: 10px; color: var(--green); text-underline-offset: 3px; font: 500 11px/1.4 "IBM Plex Mono", monospace; }
+
+    .axes { display: grid; gap: 12px; }
+    .axis {
+      display: grid; grid-template-columns: 82px minmax(190px, .64fr) minmax(0, 1.5fr) 120px;
+      gap: 18px; align-items: center; padding: 21px 22px; background: var(--paper); border: 1px solid var(--line);
+    }
+    .axis-num { font: 600 13px/1 "IBM Plex Mono", monospace; color: var(--green); }
+    .axis h3 { margin: 0; font-size: 20px; line-height: 1.25; }
+    .axis h3 small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 500; }
+    .axis p { margin: 0; color: var(--ink-2); font-size: 14px; }
+    .axis .measure { color: var(--green); font: 500 11px/1.45 "IBM Plex Mono", monospace; text-align: right; }
+    .axis.gate { border-color: var(--orange); }
+    .axis.gate .axis-num, .axis.gate .measure { color: var(--orange); }
+    .rubric-note { margin-top: 20px; display: flex; align-items: flex-start; gap: 13px; padding: 18px 20px; background: var(--orange-2); color: var(--ink); }
+    .rubric-note svg { flex: 0 0 auto; margin-top: 2px; color: var(--orange); }
+    .rubric-note p { margin: 0; font-size: 14px; }
+
+    .how-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .method { padding: 28px; background: var(--paper); border-top: 3px solid var(--green); }
+    .method:nth-child(2) { border-top-color: var(--orange); }
+    .method:nth-child(3) { border-top-color: var(--blue); }
+    .method:nth-child(4) { border-top-color: var(--amber); }
+    .method .method-id { color: var(--muted); font: 500 11px/1.4 "IBM Plex Mono", monospace; }
+    .method h3 { margin: 10px 0 9px; font-size: 21px; }
+    .method p { margin: 0; color: var(--ink-2); font-size: 14px; }
+    .method ul { margin: 15px 0 0; padding: 0; list-style: none; }
+    .method li { padding: 8px 0 8px 19px; position: relative; border-top: 1px solid var(--line); font-size: 13px; }
+    .method li::before { content: "→"; position: absolute; left: 0; color: var(--green); }
+
+    .benchmark-list { background: var(--paper); border: 1px solid var(--line); }
+    details { border-bottom: 1px solid var(--line); }
+    details:last-child { border-bottom: 0; }
+    summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 110px minmax(0, 1fr) 120px 28px; gap: 18px; align-items: center; padding: 20px 22px; }
+    summary::-webkit-details-marker { display: none; }
+    summary:hover { background: var(--green-2); }
+    summary .status { font: 600 10px/1.3 "IBM Plex Mono", monospace; color: var(--orange); }
+    summary strong { font-size: 17px; }
+    summary .score { text-align: right; color: var(--muted); font: 500 11px/1.4 "IBM Plex Mono", monospace; }
+    summary .chev { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; transition: transform .2s; }
+    details[open] summary .chev { transform: rotate(45deg); }
+    .detail-body { padding: 0 22px 24px 150px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .detail-body h4 { margin: 0 0 6px; color: var(--green); font: 600 11px/1.4 "IBM Plex Mono", monospace; }
+    .detail-body p { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .panel { background: var(--paper); padding: 28px; border: 1px solid var(--line); }
+    .panel h3 { margin: 0 0 15px; font-size: 22px; }
+    .panel > p { margin: 0 0 18px; color: var(--ink-2); font-size: 14px; }
+    .signal-list { display: grid; gap: 0; }
+    .signal { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
+    .signal svg { color: var(--green); margin-top: 2px; }
+    .signal.bad svg { color: var(--orange); }
+    .signal strong { display: block; font-size: 14px; }
+    .signal span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--paper); }
+    .flow-step { padding: 23px; position: relative; border-right: 1px solid var(--line); }
+    .flow-step:last-child { border-right: 0; }
+    .flow-step:not(:last-child)::after { content: "→"; position: absolute; right: -10px; top: 22px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: #fff; font: 600 11px/1 monospace; z-index: 2; }
+    .flow-step .n { color: var(--green); font: 600 11px/1.4 "IBM Plex Mono", monospace; }
+    .flow-step h3 { margin: 12px 0 8px; font-size: 17px; }
+    .flow-step p { margin: 0; color: var(--muted); font-size: 12px; }
+    .privacy-note { margin-top: 18px; color: var(--muted); font-size: 12px; }
+
+    .verdict { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); background: var(--ink); color: var(--bg); }
+    @media (prefers-color-scheme: dark) { .verdict { background: #e7f0eb; color: #15211b; } }
+    .verdict-copy { padding: clamp(28px, 5vw, 54px); }
+    .verdict-copy .mono { color: var(--green); font-size: 12px; font-weight: 600; }
+    .verdict h2 { margin-top: 12px; color: inherit; }
+    .verdict p { max-width: 670px; font-size: 16px; opacity: .82; }
+    .verdict-list { padding: 32px; background: var(--green); color: #fff; display: grid; align-content: center; }
+    @media (prefers-color-scheme: dark) { .verdict-list { color: #0b1912; } }
+    .verdict-list div { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.32); font-weight: 700; }
+    .verdict-list div:last-child { border-bottom: 0; }
+    .verdict-list small { display: block; margin-top: 2px; font-weight: 400; opacity: .8; }
+
+    .comparison { border: 1px solid var(--line); background: var(--paper); }
+    .comp-row { display: grid; grid-template-columns: 1.2fr repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+    .comp-row:last-child { border-bottom: 0; }
+    .comp-row > div { padding: 15px; border-right: 1px solid var(--line); font-size: 12px; }
+    .comp-row > div:last-child { border-right: 0; }
+    .comp-row.header { background: var(--green-2); font: 600 10px/1.4 "IBM Plex Mono", monospace; color: var(--green); }
+    .comp-row .dimension { font-weight: 700; color: var(--ink); }
+    .yes { color: var(--green); font-weight: 700; }
+    .partial { color: var(--amber); font-weight: 700; }
+    .no { color: var(--muted); }
+
+    .source-list { counter-reset: refs; border-top: 1px solid var(--line-strong); }
+    .ref { counter-increment: refs; display: grid; grid-template-columns: 42px minmax(0, 1fr) 130px 115px; gap: 18px; align-items: start; padding: 17px 0; border-bottom: 1px solid var(--line); }
+    .ref::before { content: counter(refs, decimal-leading-zero); color: var(--green); font: 600 12px/1.5 "IBM Plex Mono", monospace; }
+    .ref a { font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+    .ref .pub, .ref time { color: var(--muted); font-size: 12px; }
+    .open-questions { margin-top: 30px; padding: 26px; background: var(--amber-2); }
+    .open-questions h3 { margin: 0 0 12px; font-size: 19px; }
+    .open-questions ul { margin: 0; padding-left: 20px; }
+    .open-questions li { margin: 7px 0; color: var(--ink-2); font-size: 13px; }
+    footer { padding: 30px 0 56px; border-top: 1px solid var(--line); }
+    footer .page { display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 12px; }
+    .back { color: var(--green); text-decoration: none; font-family: "IBM Plex Mono", monospace; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .thesis, .verdict { grid-template-columns: 1fr; }
+      .hero-note { max-width: 680px; }
+      .evidence-grid { grid-template-columns: 1fr 1fr; }
+      .axis { grid-template-columns: 60px minmax(180px, .7fr) minmax(0, 1.3fr); }
+      .axis .measure { grid-column: 2 / -1; text-align: left; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .flow-step:nth-child(2) { border-right: 0; }
+      .flow-step:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .flow-step:nth-child(2)::after { display: none; }
+      .comparison { border: 0; background: transparent; display: grid; gap: 12px; }
+      .comp-row.header { display: none; }
+      .comp-row { grid-template-columns: 1fr 1fr; border: 1px solid var(--line); background: var(--paper); }
+      .comp-row > div { border-right: 0; border-bottom: 1px solid var(--line); }
+      .comp-row > div:last-child { border-bottom: 0; }
+      .comp-row .dimension { grid-column: 1/-1; background: var(--green-2); font-size: 14px; }
+      .comp-row > div:not(.dimension)::before { content: attr(data-label); display: block; color: var(--muted); font: 500 9px/1.4 "IBM Plex Mono", monospace; margin-bottom: 4px; }
+    }
+    @media (max-width: 680px) {
+      .page { width: min(100% - 28px, 1180px); }
+      .hero { padding: 48px 0 34px; }
+      h1 { font-size: clamp(39px, 13vw, 58px); }
+      .hero-grid { gap: 32px; }
+      .quick-nav { padding: 10px 0; }
+      .quick-nav a { padding: 6px 9px; font-size: 12px; }
+      main { padding-top: 32px; }
+      section { margin-top: 58px; }
+      .section-head { grid-template-columns: 1fr; gap: 7px; }
+      .section-no { padding-top: 0; }
+      .thesis-main, .thesis-side { padding: 26px; }
+      .evidence-grid, .how-grid, .split { grid-template-columns: 1fr; }
+      .evidence { padding: 20px; }
+      .axis { grid-template-columns: 42px minmax(0, 1fr); padding: 19px 17px; gap: 10px; }
+      .axis p, .axis .measure { grid-column: 2; }
+      summary { grid-template-columns: 1fr 28px; gap: 10px; }
+      summary .status, summary .score { grid-column: 1; text-align: left; }
+      summary strong { grid-column: 1; grid-row: 2; }
+      summary .chev { grid-column: 2; grid-row: 1 / span 3; }
+      .detail-body { padding: 0 18px 22px; grid-template-columns: 1fr; gap: 16px; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step { border-right: 0; border-bottom: 1px solid var(--line); }
+      .flow-step:last-child { border-bottom: 0; }
+      .flow-step::after { display: none !important; }
+      .comparison { gap: 10px; }
+      .comp-row { grid-template-columns: 1fr; }
+      .comp-row .dimension { grid-column: auto; }
+      .ref { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
+      .ref .pub, .ref time { grid-column: 2; }
+      footer .page { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { transition-duration: .001ms !important; }
+    }
+    @media print {
+      .quick-nav, .back { display: none; }
+      body { background: #fff; color: #111; }
+      .page { width: 100%; }
+      section { break-inside: avoid; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body id="top">
+  <div class="topline" aria-hidden="true"></div>
+  <header class="hero">
+    <div class="page hero-grid">
+      <div>
+        <div class="date">RESEARCH BRIEF · 2026-09-29</div>
+        <h1>別只看產出：<br><em>AI 工程師</em>能力該怎麼評估？</h1>
+        <p class="dek">答案不是「寫了多少 code」，而是能否把 AI 的速度轉成可驗證、可維護、可承擔的工程成果。研究顯示，真正拉開差距的是引導、驗證、架構判斷與範圍控制。</p>
+      </div>
+      <aside class="hero-note">
+        <strong>研究範圍</strong>
+        <p>整合 Paxel 五軸模型、SPACE／DORA、2024–2026 學術與業界研究、AI-assisted hiring、privacy 與 anti-gaming。數字依來源日期呈現，不把 vendor 自述當成獨立證據。</p>
+        <div class="confidence" aria-label="證據標籤說明">
+          <span class="tag verified">直接核實</span>
+          <span class="tag index">索引摘要</span>
+          <span class="tag vendor">廠商自述</span>
+        </div>
+      </aside>
+    </div>
+  </header>
+
+  <nav class="keyline" aria-label="章節導覽">
+    <div class="page quick-nav">
+      <a href="#answer">結論</a><a href="#axes">五軸能力</a><a href="#measurement">怎麼量</a><a href="#benchmarks">Benchmark</a><a href="#hiring">面試與職級</a><a href="#privacy">隱私與防作弊</a><a href="#recommendation">建議設計</a><a href="#sources">來源</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section id="answer">
+      <div class="thesis">
+        <div class="thesis-main">
+          <span class="label">THE SHORT ANSWER</span>
+          <h3>評估一位 AI 工程師，應看「受人類監督後存活的成果」，而不是 prompt 數量、AI 使用率或單次 benchmark 分數。</h3>
+          <p>建議以工程品質作為門檻，再觀察 Steering、Planning、Product Thinking 與 Execution Leverage。所有定量資料都需搭配工作樣本、決策脈絡與人工覆核。</p>
+        </div>
+        <div class="thesis-side">
+          <div>
+            <div class="big">5</div>
+            <p>個互補能力面向；沒有任何單一分數足以代表「AI 工程能力」。</p>
+          </div>
+          <p><strong>最重要的設計原則：</strong><br>triangulate — 結果、過程、品質三方互證。</p>
+        </div>
+      </div>
+
+      <div class="evidence-grid" aria-label="關鍵研究訊號">
+        <article class="evidence">
+          <span class="num">−19%</span>
+          <strong>實際完成速度</strong>
+          <p>METR：16 位資深開源開發者、246 個真實任務；使用 AI 後反而慢 19%。</p>
+          <a class="source-link" href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" target="_blank" rel="noopener">METR · 2025 ↗</a>
+        </article>
+        <article class="evidence">
+          <span class="num">+20%</span>
+          <strong>受試者主觀感覺</strong>
+          <p>同一研究中，開發者仍相信自己快了 20%：自評與結果明顯錯位。</p>
+          <a class="source-link" href="https://arxiv.org/abs/2507.09089" target="_blank" rel="noopener">arXiv · 2025 ↗</a>
+        </article>
+        <article class="evidence">
+          <span class="num">59.4%</span>
+          <strong>被稽核題目的缺陷率</strong>
+          <p>OpenAI 稽核 SWE-bench Verified 的 138 題，發現 59.4% 有實質測試或描述缺陷。</p>
+          <a class="source-link" href="https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/" target="_blank" rel="noopener">OpenAI · 2026 ↗</a>
+        </article>
+        <article class="evidence">
+          <span class="num">211M</span>
+          <strong>變更程式碼行數</strong>
+          <p>GitClear 樣本中 churn 由 3.1% 升至 5.7%；屬廠商研究，需審慎解讀。</p>
+          <a class="source-link" href="https://www.gitclear.com/ai_assistant_code_quality_2025_research" target="_blank" rel="noopener">GitClear · vendor ↗</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="axes">
+      <div class="section-head">
+        <div class="section-no">01 / RUBRIC</div>
+        <div><h2>五軸不是五個 KPI，而是五種可觀察行為</h2><p class="section-intro">Paxel 的模型與業界方向高度重疊；最有價值的是把 session、commit 與結果串成因果鏈，而不是再做一個活動量 dashboard。</p></div>
+      </div>
+      <div class="axes">
+        <article class="axis">
+          <div class="axis-num">01</div>
+          <h3>Execution Leverage<small>執行槓桿</small></h3>
+          <p>能否用更少的人類指導與 review 時間，交付可驗證、可存活的成果。LOC/day、commit 密度只應作情境資料，不是績效本身。</p>
+          <div class="measure">verified output / review hour<br>30–90 day survival</div>
+        </article>
+        <article class="axis">
+          <div class="axis-num">02</div>
+          <h3>Steering<small>動態引導與糾偏</small></h3>
+          <p>能否辨識 agent 偏航、建立正確約束、在適當時間介入，並以高品質修正取代反覆「fix it」。</p>
+          <div class="measure">correction quality<br>context resets</div>
+        </article>
+        <article class="axis gate">
+          <div class="axis-num">03</div>
+          <h3>Engineering Quality<small>工程品質 · 建議作門檻</small></h3>
+          <p>架構、邊界條件、測試、安全、回歸與可維護性。AI 產出再快，若 change-failure rate 或 churn 惡化，就不應算作能力提升。</p>
+          <div class="measure">change failure<br>regression · security</div>
+        </article>
+        <article class="axis">
+          <div class="axis-num">04</div>
+          <h3>Product Thinking<small>產品思維</small></h3>
+          <p>能否定義問題、裁剪範圍、辨識不該做的事，並清楚解釋正確性與 trade-off，而不是只接受能跑的第一版。</p>
+          <div class="measure">scope pruning<br>trade-off quality</div>
+        </article>
+        <article class="axis">
+          <div class="axis-num">05</div>
+          <h3>Planning<small>規劃與編排</small></h3>
+          <p>能否先審查計畫，再讓 agent 執行；把任務拆成可驗證步驟，合理使用 subagent，並維持跨 session 的一致性。</p>
+          <div class="measure">decomposition<br>episode coherence</div>
+        </article>
+      </div>
+      <div class="rubric-note">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 3.5v.5M3.8 18.2 10.3 5a1.9 1.9 0 0 1 3.4 0l6.5 13.2A1.9 1.9 0 0 1 18.5 21h-13a1.9 1.9 0 0 1-1.7-2.8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <p><strong>不要把五軸加總成一個看似精準的「AI 分數」。</strong>工程品質應先達標；其他軸用於解釋能力輪廓與成長方向。個人排名容易造成 surveillance perception、gaming 與文化反彈，研究更支持 team／initiative 層級的應用。</p>
+      </div>
+    </section>
+
+    <section id="measurement">
+      <div class="section-head">
+        <div class="section-no">02 / METHODS</div>
+        <div><h2>真正可量的，是決策如何變成結果</h2><p class="section-intro">從聊天紀錄或 Git 活動直接推論「能力」風險很高。較可信的做法，是把每個訊號都連回可檢查的 outcome。</p></div>
+      </div>
+      <div class="how-grid">
+        <article class="method">
+          <span class="method-id">M01 · ALIGN</span>
+          <h3>Session ↔ Commit 對齊</h3>
+          <p>把 agent session 的目標、介入點與 Git commit 時序對齊，建立工作 episode；避免把純活動量誤認為產出。</p>
+          <ul><li>輸入：session event、commit、測試結果</li><li>輸出：任務級脈絡，而非單句 prompt</li><li>風險：attribution join 多半是機率性</li></ul>
+        </article>
+        <article class="method">
+          <span class="method-id">M02 · TRACE</span>
+          <h3>Decision → Outcome Linking</h3>
+          <p>記錄「為什麼選這個設計」，再追到 merge、rollback、bug、review comment 或 30–90 天後的存活狀態。</p>
+          <ul><li>先看 plan 與替代方案</li><li>再看實作、驗證與維運結果</li><li>以結果回校判斷品質</li></ul>
+        </article>
+        <article class="method">
+          <span class="method-id">M03 · VERIFY</span>
+          <h3>外部驗證覆蓋</h3>
+          <p>agent 自稱「done」不是證據。以測試、lint、安全掃描、observational equivalence 與人工 review 作獨立 gate。</p>
+          <ul><li>量測通過自動 gate 的比例</li><li>記錄 human reviewer 的拒絕原因</li><li>grader 與產生者必須分離</li></ul>
+        </article>
+        <article class="method">
+          <span class="method-id">M04 · LEARN</span>
+          <h3>學習斜率與複利資產</h3>
+          <p>不只看當下表現，也看工程師是否把錯誤轉成 rule、eval、template、skill 或可重用工具，讓後續工作更穩定。</p>
+          <ul><li>重複錯誤是否下降</li><li>是否建立可重用驗證資產</li><li>是否能說明捨棄過什麼、為什麼</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="benchmarks">
+      <div class="section-head">
+        <div class="section-no">03 / BENCHMARKS</div>
+        <div><h2>Benchmark 測 agent 能不能做，不等於工程師會不會做</h2><p class="section-intro">單次 pass rate 看不到 steering、decomposition、review quality 或 maintainability。以下是可用範圍與主要限制。</p></div>
+      </div>
+      <div class="benchmark-list">
+        <details open>
+          <summary><span class="status">RETIRED</span><strong>SWE-bench Verified</strong><span class="score">59.4% audited defects</span><span class="chev">+</span></summary>
+          <div class="detail-body"><div><h4>可測什麼</h4><p>固定 harness 下，agent 是否能針對 issue 產生通過 grader 的 patch。</p></div><div><h4>不能代表什麼</h4><p>OpenAI 於 2026-02-23 停止報分；稽核發現廣泛題目／測試缺陷與模型 contamination。不可用來比較人的工程判斷。</p></div></div>
+        </details>
+        <details>
+          <summary><span class="status" style="color:var(--green)">JOB-LIKE</span><strong>SWE-Lancer</strong><span class="score">1,400+ tasks · $1M</span><span class="chev">+</span></summary>
+          <div class="detail-body"><div><h4>可測什麼</h4><p>真實 freelance 任務、隱藏 end-to-end tests，以及 managerial proposal selection；是目前最接近工作情境的 benchmark 之一。</p></div><div><h4>不能代表什麼</h4><p>集中於單一 repo、偏 bug-work，且由 OpenAI 建立並評測自家模型。最佳受測模型通過 26.2%，不是人類能力刻度。</p></div></div>
+        </details>
+        <details>
+          <summary><span class="status" style="color:var(--blue)">ENVIRONMENT</span><strong>Terminal-Bench</strong><span class="score">state-based checks</span><span class="chev">+</span></summary>
+          <div class="detail-body"><div><h4>可測什麼</h4><p>在 containerized terminal 中完成較長流程，並用最終 state 驗證。</p></div><div><h4>不能代表什麼</h4><p>沒有 private test set；論文本身承認理論上可能透過網路讀到 oracle solution。仍無法直接觀察人的監督品質。</p></div></div>
+        </details>
+        <details>
+          <summary><span class="status" style="color:var(--blue)">END-TO-END</span><strong>τ^τ-bench</strong><span class="score">23.9% vs expert 82.2%</span><span class="chev">+</span></summary>
+          <div class="detail-body"><div><h4>可測什麼</h4><p>53 個任務、4 個領域，將「建造 agent」本身作為任務；能暴露淺層查詢、缺少溝通與過早定案。</p></div><div><h4>不能代表什麼</h4><p>依賴 simulator 與 judge；外部稽核曾發現 reward 與實際結果不一致。需防 reward hacking 與 judge bias。</p></div></div>
+        </details>
+        <details>
+          <summary><span class="status">UNVERIFIED</span><strong>Commit0</strong><span class="score">open question</span><span class="chev">+</span></summary>
+          <div class="detail-body"><div><h4>研究狀態</h4><p>本次搜尋未取得 2024–2026 可核實的一手文件。</p></div><div><h4>處理方式</h4><p>不要將已知印象或二手描述當成已驗證事實；若要納入評估，需另做 primary-source audit。</p></div></div>
+        </details>
+      </div>
+    </section>
+
+    <section id="hiring">
+      <div class="section-head">
+        <div class="section-no">04 / HIRING</div>
+        <div><h2>AI-enabled 面試的訊號：看候選人怎麼懷疑 AI</h2><p class="section-intro">2025–2026 的公開做法逐漸把 AI 帶進面試，但業界仍分裂。共同點不是速度，而是 error-catching、trade-off explanation 與 decomposition。</p></div>
+      </div>
+      <div class="split">
+        <article class="panel">
+          <h3>值得觀察的正向訊號</h3>
+          <p>Karat NextGen、Zapier AI Fluency v2、Canva 與 Datadog 的公開或第三方整理，都指向同一組能力。</p>
+          <div class="signal-list">
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>能抓出並修正 AI 的錯誤</strong><span>不只知道答案錯，也能定位 assumption 或 test gap。</span></div></div>
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>能解釋 trade-off 與正確性</strong><span>每個重要 AI-generated 部分都能自己說明與承擔。</span></div></div>
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>先拆問題，再選工具</strong><span>不把複雜需求整包丟給 agent。</span></div></div>
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>能描述學習斜率</strong><span>用過什麼、放棄什麼、為什麼改變 workflow。</span></div></div>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>容易誤判的負向訊號</h3>
+          <p>這些訊號可觸發追問，但不可自動判定能力或不誠實；尤其情緒與短 prompt 受任務情境影響很大。</p>
+          <div class="signal-list">
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div><strong>AI 使用量或 suggestion acceptance</strong><span>接受不代表 merge，更不代表 30–90 天後仍存活。</span></div></div>
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div><strong>LOC、commit、PR 數量</strong><span>可能同時伴隨 rework、churn 與 review bottleneck。</span></div></div>
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div><strong>單次 benchmark 高分</strong><span>可能受 harness、contamination 與 grader defect 影響。</span></div></div>
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div><strong>短 prompt 或挫折語句</strong><span>只能作 investigation cue，不是能力或人格結論。</span></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="section-head">
+        <div class="section-no">05 / TRUST</div>
+        <div><h2>先證明不會洩漏，再談全面蒐集</h2><p class="section-intro">Paxel 的 local-first、redacted-summary、fail-closed 方向符合業界常見模式；但「零洩漏」不應被當作絕對保證，redaction 本身仍有漏網風險。</p></div>
+      </div>
+      <div class="flow" aria-label="隱私保護評估流程">
+        <article class="flow-step"><span class="n">01 · LOCAL</span><h3>本地擷取</h3><p>repo 唯讀、原始碼與完整對話不離開裝置。</p></article>
+        <article class="flow-step"><span class="n">02 · REDACT</span><h3>脫敏與最小化</h3><p>regex、NER、custom recognizer；保留一致 placeholder。</p></article>
+        <article class="flow-step"><span class="n">03 · GATE</span><h3>Fail-closed 邊界</h3><p>無法確認安全的資料不送出；預覽與輸出共用規則。</p></article>
+        <article class="flow-step"><span class="n">04 · AGGREGATE</span><h3>聚合＋人工覆核</h3><p>只呈現必要統計與證據；敏感 verdict 不自動化。</p></article>
+      </div>
+      <p class="privacy-note">進階選項：研究顯示 differential privacy 可降低 membership-inference 風險；一篇 2026 論文報告 AUC 由 0.901 降至 0.606，但其效用成本與適用範圍仍需依場景驗證。<a class="source-link" href="https://arxiv.org/html/2601.22935" target="_blank" rel="noopener">閱讀論文 ↗</a></p>
+
+      <div class="split" style="margin-top:24px">
+        <article class="panel">
+          <h3>Anti-gaming：可以採用</h3>
+          <div class="signal-list">
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2"/></svg><div><strong>產生者與 evaluator 分離</strong><span>外部、對抗式評估；不要接受 agent 自己宣告成功。</span></div></div>
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2"/></svg><div><strong>Judge blinding 與 abstention</strong><span>對低信心案例拒判，定期與人類校準。</span></div></div>
+            <div class="signal"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2"/></svg><div><strong>流程訊號觸發人工 review</strong><span>異常編輯軌跡、無中間狀態等不可直接自動拒絕。</span></div></div>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>仍未核實的主張</h3>
+          <div class="signal-list">
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2"/></svg><div><strong>HMAC nonce 能「數學上封死」刷分</strong><span>本次未找到公開實作或獨立證據；provenance 不等於判斷正確。</span></div></div>
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2"/></svg><div><strong>「Fail-closed developer analytics」是成熟標準</strong><span>安全概念存在，但未找到此場景的 canonical reference。</span></div></div>
+            <div class="signal bad"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2"/></svg><div><strong>Paxel／YC script 的公開存在性</strong><span>五軸來自提供材料，本次未取得可獨立驗證的公開來源。</span></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="recommendation">
+      <div class="verdict">
+        <div class="verdict-copy">
+          <span class="mono">RECOMMENDED EVALUATION DESIGN</span>
+          <h2>把評估設計成「證據檔案」，不是員工排行榜</h2>
+          <p>每個 episode 保留問題定義、計畫、關鍵介入、驗證、review 與後續結果。先由工程品質 gate 擋下不可接受的產出，再用其餘四軸描述優勢與改進方向。對人做 consequential decision 時，必須提供情境、申訴與人工覆核。</p>
+        </div>
+        <div class="verdict-list">
+          <div>Outcome first<small>存活、失敗、回歸、review burden</small></div>
+          <div>Process evidence<small>plan、steering、verification trace</small></div>
+          <div>Human judgment<small>trade-off、context、appeal</small></div>
+          <div>Team-level by default<small>避免 surveillance 與 gaming</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparison">
+      <div class="section-head">
+        <div class="section-no">06 / MAP</div>
+        <div><h2>框架對照：各自看得到什麼</h2><p class="section-intro">Paxel 五軸補足了傳統 flow metrics 看不到的過程訊號；但 DORA／SPACE 仍提供穩定性與團隊層級的必要基線。</p></div>
+      </div>
+      <div class="comparison" role="table" aria-label="評估框架對照表">
+        <div class="comp-row header" role="row"><div>DIMENSION</div><div>PAXEL</div><div>DORA</div><div>SPACE / DX</div><div>BENCHMARKS</div></div>
+        <div class="comp-row" role="row"><div class="dimension">Execution Leverage</div><div data-label="PAXEL" class="yes">直接觀察</div><div data-label="DORA" class="partial">流量／速度</div><div data-label="SPACE / DX" class="yes">Speed／flow</div><div data-label="BENCHMARKS" class="partial">單次 pass</div></div>
+        <div class="comp-row" role="row"><div class="dimension">Steering</div><div data-label="PAXEL" class="yes">核心</div><div data-label="DORA" class="no">未涵蓋</div><div data-label="SPACE / DX" class="partial">friction／flow break</div><div data-label="BENCHMARKS" class="no">通常不測</div></div>
+        <div class="comp-row" role="row"><div class="dimension">Engineering Quality</div><div data-label="PAXEL" class="yes">核心</div><div data-label="DORA" class="yes">failure／MTTR</div><div data-label="SPACE / DX" class="yes">quality</div><div data-label="BENCHMARKS" class="partial">grader pass</div></div>
+        <div class="comp-row" role="row"><div class="dimension">Product Thinking</div><div data-label="PAXEL" class="yes">核心</div><div data-label="DORA" class="no">未涵蓋</div><div data-label="SPACE / DX" class="partial">communication／impact</div><div data-label="BENCHMARKS" class="partial">SWE-Lancer managerial</div></div>
+        <div class="comp-row" role="row"><div class="dimension">Planning</div><div data-label="PAXEL" class="yes">核心</div><div data-label="DORA" class="no">未涵蓋</div><div data-label="SPACE / DX" class="no">弱</div><div data-label="BENCHMARKS" class="no">通常不測</div></div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="section-head">
+        <div class="section-no">07 / SOURCES</div>
+        <div><h2>最重要的 10 個來源</h2><p class="section-intro">優先列一手來源。部分 hiring／vendor 資料仍是二手索引或廠商自述，頁面已明確標記。</p></div>
+      </div>
+      <div class="source-list">
+        <div class="ref"><a href="https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/" target="_blank" rel="noopener">Why SWE-bench Verified no longer measures frontier coding capabilities</a><span class="pub">OpenAI</span><time>2026-02-23</time></div>
+        <div class="ref"><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" target="_blank" rel="noopener">Early 2025 AI, experienced open-source developer study</a><span class="pub">METR</span><time>2025-07-10</time></div>
+        <div class="ref"><a href="https://arxiv.org/abs/2502.12115" target="_blank" rel="noopener">SWE-Lancer: Can Frontier LLMs Earn $1 Million?</a><span class="pub">OpenAI / arXiv</span><time>2025-02-17</time></div>
+        <div class="ref"><a href="https://www.gitclear.com/ai_assistant_code_quality_2025_research" target="_blank" rel="noopener">AI Copilot Code Quality</a><span class="pub">GitClear · vendor</span><time>2026-01</time></div>
+        <div class="ref"><a href="https://www.businesswire.com/news/home/20251210685922/en/" target="_blank" rel="noopener">Karat NextGen Interviews & AI Workforce Transformation Report</a><span class="pub">Karat · vendor</span><time>2025-12-10</time></div>
+        <div class="ref"><a href="https://openreview.net/pdf?id=a7Qa4CcHak" target="_blank" rel="noopener">Terminal-Bench: Benchmarking Agents on Hard, Realistic Tasks</a><span class="pub">ICLR / OpenReview</span><time>2026</time></div>
+        <div class="ref"><a href="https://arxiv.org/abs/2609.04611" target="_blank" rel="noopener">τ^τ-Bench: End-To-End, Realistic Agent Construction</a><span class="pub">Shi et al. / arXiv</span><time>2026-09-04</time></div>
+        <div class="ref"><a href="https://arxiv.org/html/2601.22935" target="_blank" rel="noopener">Protecting Private Code in IDE Autocomplete using Differential Privacy</a><span class="pub">arXiv</span><time>2026</time></div>
+        <div class="ref"><a href="https://arxiv.org/abs/2211.03622" target="_blank" rel="noopener">Do Users Write More Insecure Code with AI Assistants?</a><span class="pub">Perry et al. / CCS</span><time>2023-11</time></div>
+        <div class="ref"><a href="https://growthmethod.com/ai-fluency-rubric/" target="_blank" rel="noopener">Zapier AI Fluency Rubric v2</a><span class="pub">Growth Method</span><time>2026-03-31</time></div>
+      </div>
+      <div class="open-questions">
+        <h3>尚未解答／需二次核實</h3>
+        <ul>
+          <li>Commit0 的 2024–2026 一手規格與限制。</li>
+          <li>任何公開的 L4／L5／Staff「AI fluency」正式工程職級 ladder。</li>
+          <li>Paxel HMAC nonce 評估 provenance 的公開實作、威脅模型與獨立稽核。</li>
+          <li>DX、Jellyfish、CodeSignal 等 vendor 的 attribution／anti-cheat 演算法與自述成效，均需原始資料或獨立複驗。</li>
+          <li>Metaview 的公開證據顯示它屬 interview intelligence；本次未找到其衡量在職 AI 工程能力的證據。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="page"><span>研究基準日：2026-09-29 · 數字依來源日期呈現</span><a class="back" href="#top">回到頂端 ↑</a></div>
+  </footer>
+
+  <script>
+    (function () {
+      var links = document.querySelectorAll('.quick-nav a');
+      links.forEach(function (link) {
+        link.addEventListener('click', function () {
+          links.forEach(function (item) { item.removeAttribute('aria-current'); });
+          link.setAttribute('aria-current', 'location');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

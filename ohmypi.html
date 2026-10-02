@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="A code-path-first technical report on Oh My Pi architecture, agent loop, stop conditions, tools, skills, context, memory, compaction, retrieval, and prompt templates." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>How Oh My Pi Actually Works — Technical Deep Dive</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7f8;
+      --surface: #ffffff;
+      --surface-2: #edf1f3;
+      --ink: #142027;
+      --muted: #53636d;
+      --faint: #7b8991;
+      --line: #ccd5da;
+      --line-strong: #9daab1;
+      --accent: #d3522a;
+      --accent-soft: #f7ddd3;
+      --teal: #087c7d;
+      --teal-soft: #d6eeee;
+      --amber: #9a6612;
+      --amber-soft: #f5e8c7;
+      --danger: #a73737;
+      --danger-soft: #f5dede;
+      --code: #10191e;
+      --code-ink: #e5edf1;
+      --shadow: 0 18px 45px rgba(30, 49, 60, .08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1114;
+        --surface: #121b20;
+        --surface-2: #19252b;
+        --ink: #e7eef1;
+        --muted: #a9b7be;
+        --faint: #7f9098;
+        --line: #2b3a42;
+        --line-strong: #45565e;
+        --accent: #ff7a4f;
+        --accent-soft: #42261f;
+        --teal: #5bc8c6;
+        --teal-soft: #173637;
+        --amber: #e6b65d;
+        --amber-soft: #3d3018;
+        --danger: #ff8e8e;
+        --danger-soft: #442425;
+        --code: #070b0d;
+        --code-ink: #dce9ee;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      line-height: 1.75;
+      overflow-wrap: anywhere;
+    }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    a:hover { color: var(--accent); }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .shell {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      padding: 24px 24px 72px;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 42px;
+    }
+    .rail {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 6px 0 18px;
+      scrollbar-width: thin;
+    }
+    .rail .stamp {
+      font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--accent);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .rail nav { display: grid; gap: 3px; }
+    .rail a {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 8px;
+      padding: 8px 9px;
+      border-left: 2px solid transparent;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .rail a:hover, .rail a.active {
+      color: var(--ink);
+      border-left-color: var(--accent);
+      background: var(--surface-2);
+    }
+    .rail .n { font: 500 11px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--faint); }
+    .report { min-width: 0; }
+    .hero {
+      border-top: 5px solid var(--ink);
+      padding: 32px 0 34px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(220px, .55fr);
+      gap: 34px;
+      align-items: end;
+    }
+    .kicker {
+      font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--accent);
+      letter-spacing: .08em;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font-size: clamp(42px, 6.6vw, 84px);
+      line-height: .98;
+      letter-spacing: -.055em;
+      font-weight: 800;
+    }
+    .dek {
+      margin: 24px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 21px);
+      line-height: 1.65;
+    }
+    .hero-meta {
+      border-top: 1px solid var(--line-strong);
+      padding-top: 14px;
+      font: 500 12px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+    }
+    .hero-meta strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 5px; }
+    .mode-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 36px;
+    }
+    .mode-copy { color: var(--muted); font-size: 13px; }
+    .segmented { display: inline-flex; border: 1px solid var(--line-strong); padding: 3px; background: var(--surface); }
+    .segmented button {
+      border: 0; background: transparent; color: var(--muted); padding: 7px 12px;
+      font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; cursor: pointer;
+    }
+    .segmented button.active { background: var(--ink); color: var(--bg); }
+    .lede-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+      margin-bottom: 52px;
+    }
+    .thesis {
+      background: var(--code);
+      color: var(--code-ink);
+      padding: 28px 30px;
+      border-radius: 2px var(--radius) var(--radius) var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .thesis .label { font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #ff9876; letter-spacing: .08em; text-transform: uppercase; }
+    .thesis p { margin: 13px 0 0; font-size: 21px; line-height: 1.65; font-weight: 500; }
+    .verdict {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 25px;
+      border-radius: var(--radius) 2px var(--radius) var(--radius);
+    }
+    .verdict h2 { font-size: 18px; margin: 0 0 8px; }
+    .verdict p { margin: 0; color: var(--muted); }
+    .score-line { margin-top: 18px; display: grid; gap: 10px; }
+    .score { display: grid; grid-template-columns: 84px 1fr 34px; align-items: center; gap: 9px; font-size: 12px; }
+    .track { height: 7px; background: var(--surface-2); overflow: hidden; }
+    .fill { height: 100%; background: var(--teal); }
+    .fill.warn { background: var(--accent); }
+    .section {
+      scroll-margin-top: 24px;
+      padding: 42px 0 20px;
+      border-top: 1px solid var(--line);
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+    .section-num { font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent); padding-top: 10px; }
+    h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.18; letter-spacing: -.035em; margin: 0; }
+    h3 { margin: 30px 0 12px; font-size: 20px; line-height: 1.35; }
+    p { margin: 0 0 16px; }
+    .section-intro { max-width: 780px; font-size: 18px; color: var(--muted); margin: 0 0 24px 72px; }
+    .fact-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin: 28px 0;
+    }
+    .fact { background: var(--surface); padding: 19px 18px; min-height: 134px; }
+    .fact strong { display: block; font: 600 clamp(24px, 3vw, 38px)/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); letter-spacing: -.06em; }
+    .fact span { display: block; margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .fact small { display: block; margin-top: 8px; color: var(--faint); font: 500 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .tag {
+      display: inline-block;
+      padding: 3px 7px;
+      margin-right: 5px;
+      font: 600 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      border: 1px solid currentColor;
+      vertical-align: 2px;
+      white-space: nowrap;
+    }
+    .verified { color: var(--teal); background: var(--teal-soft); }
+    .claimed { color: var(--amber); background: var(--amber-soft); }
+    .analysis-tag { color: var(--accent); background: var(--accent-soft); }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 26px 0;
+    }
+    .layer {
+      position: relative;
+      background: var(--surface);
+      border-top: 4px solid var(--teal);
+      padding: 18px;
+      min-height: 165px;
+      box-shadow: var(--shadow);
+    }
+    .layer::after {
+      content: "→";
+      position: absolute;
+      right: -11px;
+      top: 66px;
+      z-index: 2;
+      color: var(--accent);
+      font: 600 18px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .layer:last-child::after { display: none; }
+    .layer .eyebrow { font: 600 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--faint); text-transform: uppercase; }
+    .layer h3 { margin: 8px 0 9px; font-size: 16px; }
+    .layer p { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0; }
+    .callout {
+      margin: 24px 0;
+      padding: 20px 22px;
+      background: var(--surface-2);
+      border-left: 5px solid var(--accent);
+    }
+    .callout strong { display: block; margin-bottom: 6px; }
+    .callout p { margin: 0; color: var(--muted); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .panel { background: var(--surface); border: 1px solid var(--line); padding: 22px; }
+    .panel h3 { margin-top: 0; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre {
+      margin: 18px 0;
+      padding: 20px;
+      background: var(--code);
+      color: var(--code-ink);
+      overflow-x: auto;
+      font: 500 12px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      border-radius: 4px;
+    }
+    .hashline-demo { display: grid; grid-template-columns: 1fr 44px 1fr; align-items: stretch; gap: 10px; margin: 26px 0; }
+    .hashline-demo .arrow { display: grid; place-items: center; color: var(--accent); font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mini-code { background: var(--code); color: var(--code-ink); padding: 18px; font: 500 12px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mini-code .hash { color: #79d9d6; }
+    .mini-code .op { color: #ff9a78; }
+    .mini-code .dim { color: #7f929c; }
+    .matrix { width: 100%; border-collapse: collapse; margin: 22px 0; font-size: 14px; }
+    .matrix th, .matrix td { padding: 13px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    .matrix th { font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--faint); letter-spacing: .04em; }
+    .matrix tr:last-child td { border-bottom: 0; }
+    .risk-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 24px 0; }
+    .risk { padding: 17px 18px; background: var(--surface); border: 1px solid var(--line); }
+    .risk b { display: flex; justify-content: space-between; gap: 10px; }
+    .risk p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .risk .status { font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent); }
+    .bench {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 24px;
+      align-items: start;
+      margin: 24px 0;
+    }
+    .big-number { background: var(--accent); color: #fff; padding: 25px; }
+    .big-number strong { display: block; font: 600 clamp(48px, 8vw, 84px)/.95 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: -.08em; }
+    .big-number span { display: block; margin-top: 12px; font-weight: 600; }
+    .bench-notes { padding-top: 2px; }
+    .bench-notes ul, .checklist { margin: 0; padding: 0; list-style: none; }
+    .bench-notes li, .checklist li { position: relative; padding: 0 0 12px 24px; color: var(--muted); }
+    .bench-notes li::before { content: "—"; position: absolute; left: 0; color: var(--accent); }
+    .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--teal); font-weight: 800; }
+    .decision {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin: 24px 0;
+    }
+    .decision > div { background: var(--surface); padding: 24px; }
+    .decision h3 { margin-top: 0; }
+    .no li::before { content: "×"; color: var(--danger); }
+    .timeline { margin: 24px 0; border-top: 1px solid var(--line-strong); }
+    .time-row { display: grid; grid-template-columns: 140px 1fr; gap: 22px; padding: 17px 0; border-bottom: 1px solid var(--line); }
+    .time-row time { font: 600 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent); }
+    .time-row p { margin: 0; color: var(--muted); }
+    .sources { display: grid; gap: 10px; }
+    .source {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .source .type { font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--faint); text-transform: uppercase; }
+    .source a { font-size: 14px; word-break: break-all; }
+    .limits { margin-top: 24px; padding: 20px; border: 1px dashed var(--line-strong); color: var(--muted); }
+    .limits strong { color: var(--ink); }
+    footer { margin-top: 42px; padding-top: 20px; border-top: 4px solid var(--ink); color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 20px; }
+    .deep-only {}
+    body.summary-mode .deep-only { display: none !important; }
+    body.summary-mode .section { padding-top: 30px; }
+    @media (max-width: 940px) {
+      .shell { grid-template-columns: 1fr; gap: 0; padding: 0 20px 60px; }
+      .rail { position: sticky; top: 0; z-index: 10; margin: 0 -20px; padding: 8px 20px; background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); max-height: none; overflow: hidden; }
+      .rail .stamp { display: none; }
+      .rail nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 6px; width: 100%; }
+      .rail a { display: block; border-left: 0; border-bottom: 2px solid transparent; white-space: normal; padding: 5px 3px; font-size: 10px; line-height: 1.25; }
+      .rail a .n { display: block; font-size: 9px; }
+      .rail a.active { border-left: 0; border-bottom-color: var(--accent); }
+      .hero { padding-top: 34px; }
+      .fact-grid { grid-template-columns: repeat(2, 1fr); }
+      .flow { grid-template-columns: repeat(2, 1fr); }
+      .layer:nth-child(2)::after { display: none; }
+    }
+    @media (max-width: 680px) {
+      .shell { padding-left: 16px; padding-right: 16px; }
+      .rail { margin-left: -16px; margin-right: -16px; padding-left: 12px; padding-right: 12px; }
+      .hero { grid-template-columns: 1fr; gap: 24px; }
+      .hero-meta { max-width: 300px; }
+      .mode-bar { align-items: flex-start; flex-direction: column; }
+      .lede-grid, .two-col, .bench, .decision { grid-template-columns: 1fr; }
+      .section-head { grid-template-columns: 42px 1fr; gap: 8px; }
+      .section-intro { margin-left: 50px; font-size: 16px; }
+      .fact-grid { grid-template-columns: 1fr 1fr; }
+      .fact { min-height: 120px; padding: 16px; }
+      .flow { grid-template-columns: 1fr; }
+      .layer::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -14px; }
+      .layer:nth-child(2)::after { display: block; }
+      .hashline-demo { grid-template-columns: 1fr; }
+      .hashline-demo .arrow { transform: rotate(90deg); min-height: 28px; }
+      .risk-list { grid-template-columns: 1fr; }
+      .matrix, .matrix tbody, .matrix tr, .matrix td { display: block; width: 100%; }
+      .matrix thead { display: none; }
+      .matrix tr { padding: 14px 0; border-bottom: 1px solid var(--line); }
+      .matrix td { border: 0; padding: 4px 0 4px 39%; position: relative; }
+      .matrix td::before { content: attr(data-label); position: absolute; left: 0; width: 35%; color: var(--faint); font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; }
+      .time-row { grid-template-columns: 1fr; gap: 4px; }
+      .source { grid-template-columns: 1fr; gap: 4px; }
+      footer { flex-direction: column; }
+    }
+    @media (max-width: 420px) {
+      h1 { font-size: 40px; }
+      .fact-grid { grid-template-columns: 1fr; }
+      .thesis, .verdict { padding: 21px; }
+      .thesis p { font-size: 18px; }
+      .segmented { width: 100%; }
+      .segmented button { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      .rail, .mode-bar { display: none; }
+      .shell { display: block; width: 100%; padding: 0; }
+      .section { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+      body { background: white; color: black; }
+    }
+
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92em; color: var(--teal); }
+    .flow.three { grid-template-columns: repeat(3, 1fr); }
+    .architecture-flow .layer { min-height: 178px; }
+    ol { padding-left: 1.35rem; color: var(--muted); }
+    ol li { margin-bottom: .55rem; }
+    .summary-mode #architecture .matrix,
+    .summary-mode #loop .matrix,
+    .summary-mode #tools .matrix,
+    .summary-mode #context .matrix,
+    .summary-mode #retrieval .matrix,
+    .summary-mode #prompts .matrix,
+    .summary-mode #agents .matrix { display: none; }
+    @media (max-width: 940px) {
+      .rail nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .flow.three { grid-template-columns: 1fr; }
+      .flow.three .layer::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -14px; }
+    }
+    @media (max-width: 680px) {
+      .rail nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail" aria-label="Report contents">
+  <div class="stamp">code study / 2026.09</div>
+  <nav>
+    <a href="#map"><span class="n">00</span><span>System map</span></a>
+    <a href="#architecture"><span class="n">01</span><span>Major architecture</span></a>
+    <a href="#loop"><span class="n">02</span><span>Agent loop & stop</span></a>
+    <a href="#tools"><span class="n">03</span><span>Tools & skills</span></a>
+    <a href="#context"><span class="n">04</span><span>Context & memory</span></a>
+    <a href="#retrieval"><span class="n">05</span><span>Retrieval</span></a>
+    <a href="#prompts"><span class="n">06</span><span>Prompt templates</span></a>
+    <a href="#rules"><span class="n">07</span><span>Rules & TTSR</span></a>
+    <a href="#agents"><span class="n">08</span><span>Subagents & extensions</span></a>
+    <a href="#security"><span class="n">09</span><span>Security model</span></a>
+    <a href="#sources"><span class="n">10</span><span>Sources & limits</span></a>
+  </nav>
+</aside>
+<main class="report">
+<header class="hero">
+  <div>
+    <div class="kicker">OH MY PI / INTERNAL MECHANICS</div>
+    <h1>How OMP<br>Actually Works</h1>
+    <p class="dek">A code-path-first report on the architecture, orchestration loop, stop conditions, tool and skill loading, context reconstruction, memory, compaction, retrieval, and prompt composition.</p>
+  </div>
+  <div class="hero-meta"><strong>Research scope</strong>English by default · technical deep dive<br>Based on 15 supplied code-study notes plus official public documentation<br>Snapshot: 2026-09-27/28 PDT; fast-moving codebase</div>
+</header>
+<div class="mode-bar" aria-label="Reading mode">
+  <div class="mode-copy">The default view is the full code-path analysis.</div>
+  <div class="segmented" role="group" aria-label="Switch reading depth"><button id="summaryBtn" type="button">Summary</button><button id="deepBtn" type="button" class="active">Deep dive</button></div>
+</div>
+<section class="lede-grid" aria-label="Core thesis">
+  <div class="thesis"><div class="label">Working mental model</div><p>OMP is a <strong>replayable agent runtime</strong>, not just a chat loop: discovery builds capabilities, the session projects one branch of history, the runtime alternates model calls and tool batches, and persistence records every state transition needed to resume.</p></div>
+  <div class="verdict"><h2>What matters most</h2><p>The model decides what to retrieve, which tools to call, and when it is done. OMP supplies the control plane: schemas, approvals, interrupts, persistence, pruning, compaction, and provider adaptation.</p></div>
+</section>
+<section class="section" id="map">
+  <div class="section-head"><div class="section-num">00</div><h2>The whole system in one page</h2></div>
+  <p class="section-intro">Read this left to right. The CLI is the product shell; the agent package is the reusable state machine; the AI package is the provider boundary; Rust accelerates hot paths.</p>
+  <div class="flow architecture-flow">
+    <div class="layer"><div class="eyebrow">Discover</div><h3>Rules · skills · MCP · context files</h3><p>Provider-priority merge creates a deduplicated capability feed.</p></div>
+    <div class="layer"><div class="eyebrow">Compose</div><h3>Session + prompts</h3><p>Build system blocks, project context, one leaf-path, tools, and memory hints.</p></div>
+    <div class="layer"><div class="eyebrow">Run</div><h3>Model ⇄ tools</h3><p>Stream output, execute runnable calls, append results, then re-sample.</p></div>
+    <div class="layer"><div class="eyebrow">Persist</div><h3>JSONL tree</h3><p>Append messages and state events; compact only the model projection.</p></div>
+  </div>
+  <div class="callout"><strong>History ≠ context.</strong><p>The JSONL session is the full append-only event tree. The model receives a sanitized projection of the current root-to-leaf branch, often a compaction summary plus a recent verbatim tail.</p></div>
+</section>
+<section class="section" id="architecture">
+  <div class="section-head"><div class="section-num">01</div><h2>Major architecture</h2></div>
+  <p class="section-intro">OMP separates product policy from provider transport and native execution. That split is the main architectural idea—not the TUI.</p>
+  <div class="fact-grid">
+    <div class="fact"><strong>4</strong><span>entry surfaces: interactive TUI, SDK, NDJSON RPC, ACP/editor embedding</span><small>same session/runtime core</small></div>
+    <div class="fact"><strong>3</strong><span>TypeScript layers: coding-agent, agent runtime, provider transport/catalog</span><small>Bun monorepo</small></div>
+    <div class="fact"><strong>Rust</strong><span>search, AST, edit, shell/PTY, walker, diff, isolation, voice</span><small>N-API boundary</small></div>
+    <div class="fact"><strong>Tree</strong><span>append-only JSONL journal with parent links and a mutable current leaf</span><small>session format v3 in study snapshot</small></div>
+  </div>
+  <table class="matrix deep-only">
+    <thead><tr><th>Layer</th><th>Primary modules</th><th>Owns</th><th>Does not own</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Layer"><strong>Product shell</strong></td><td data-label="Primary modules"><code>packages/coding-agent</code></td><td data-label="Owns">CLI/TUI, discovery, sessions, prompts, approvals, built-in tools, memory wiring, extensions</td><td data-label="Does not own">provider wire dialects and the generic loop kernel</td></tr>
+      <tr><td data-label="Layer"><strong>Runtime kernel</strong></td><td data-label="Primary modules"><code>packages/agent</code></td><td data-label="Owns">agent loop, event stream, tool dispatch, context conversion hooks, compaction contracts</td><td data-label="Does not own">concrete tool implementations or UI</td></tr>
+      <tr><td data-label="Layer"><strong>Model transport</strong></td><td data-label="Primary modules"><code>packages/ai</code>, <code>packages/catalog</code></td><td data-label="Owns">streaming dialects, schema normalization, model metadata, routing quirks</td><td data-label="Does not own">session history or task policy</td></tr>
+      <tr><td data-label="Layer"><strong>Native data plane</strong></td><td data-label="Primary modules"><code>crates/pi-*</code></td><td data-label="Owns">latency-sensitive filesystem, AST, shell, diff, workspace isolation, media primitives</td><td data-label="Does not own">agent policy</td></tr>
+    </tbody>
+  </table>
+  <h3>Dependency direction</h3>
+  <pre>input (TUI / SDK / RPC / ACP)
+  → AgentSession (product orchestration)
+  → Agent (provider-neutral runtime)
+  → streamSimple(model, context, options)
+  → provider adapter
+
+model tool call
+  → approval + beforeToolCall hooks
+  → concrete tool / MCP bridge / extension tool
+  → Rust or external boundary
+  → normalized toolResult
+  → append to session → next model call</pre>
+  <div class="two-col deep-only">
+    <div class="panel"><h3>Capability discovery</h3><p>Project and user sources—OMP, Claude, Codex, Gemini, Cursor, Windsurf, Cline, GitHub, VS Code, MCP—are loaded with explicit priorities. First provider to claim a capability name wins. Separate feeds exist for context files, rules, skills, tools, and extensions.</p></div>
+    <div class="panel"><h3>Session wiring</h3><p><code>createAgentSession()</code> constructs one <code>AgentSession</code>, injecting settings, TTSR buckets, tool session services, built-ins, MCP, memory, advisor, and the final message-to-provider conversion chain.</p></div>
+  </div>
+  <div class="callout"><strong>Architectural consequence</strong><p>The same loop can be driven headlessly or interactively because rendering is an event consumer. Likewise, provider differences are isolated at the last mile rather than leaking into every tool and session module.</p></div>
+</section>
+<section class="section" id="loop">
+  <div class="section-head"><div class="section-num">02</div><h2>Major agent loop and stop conditions</h2></div>
+  <p class="section-intro">The loop is provider-agnostic and model-driven. OMP does not run a separate “sufficiency” algorithm; a turn continues when runnable tool calls or queued messages exist.</p>
+  <h3>The actual control flow</h3>
+  <pre>AgentSession.prompt()
+  ├─ validate model / credentials / usage
+  ├─ optional pre-prompt compaction
+  ├─ build system prompt + leaf-path context
+  └─ Agent.prompt() → agentLoop()
+
+OUTER LOOP
+  collect steering / asides / follow-ups
+  INNER LOOP while tool calls or pending messages exist
+    1. deadline + pause gate
+    2. fold pending messages into context
+    3. prepareProviderCall()
+       convertToLlm → normalize messages/tools → provider transform
+    4. beforeModelCall gate
+    5. streamAssistantResponse()
+       text / thinking / tool-call deltas → AgentEvent stream
+    6. if runnable tool calls: executeToolCalls()
+       validate → approve → hooks → execute → normalize result
+    7. append assistant + tool results; emit turn_end
+  if late queued work exists: continue OUTER LOOP
+  else: emit agent_end</pre>
+  <div class="callout"><strong>What decides “answer now” versus “use a tool”?</strong><p>The model. The provider stream may contain prose, thinking, tool calls, or a mix. After the stream settles, OMP inspects the final message. Runnable tool calls continue the loop; text-only completion with no queued work terminates naturally.</p></div>
+  <h3>Runnable-call rule</h3>
+  <table class="matrix">
+    <thead><tr><th>Final message</th><th>Runnable?</th><th>Loop behavior</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Final message">Text only, <code>stopReason="stop"</code></td><td data-label="Runnable?">No</td><td data-label="Loop behavior">Natural completion, unless a steering/follow-up message is waiting.</td></tr>
+      <tr><td data-label="Final message">Tool calls with <code>"toolUse"</code></td><td data-label="Runnable?">Yes</td><td data-label="Loop behavior">Execute the tool batch, append results, call the model again.</td></tr>
+      <tr><td data-label="Final message">Tool calls with <code>"stop"</code></td><td data-label="Runnable?">Yes</td><td data-label="Loop behavior">Also execute; this handles providers that emit calls under an end-turn status.</td></tr>
+      <tr><td data-label="Final message"><code>"length"</code></td><td data-label="Runnable?">No</td><td data-label="Loop behavior">Do not trust possibly truncated arguments; synthesize skipped results.</td></tr>
+      <tr><td data-label="Final message"><code>"error"</code> or <code>"aborted"</code></td><td data-label="Runnable?">No</td><td data-label="Loop behavior">Create placeholder results for orphaned calls and end the run.</td></tr>
+    </tbody>
+  </table>
+  <h3 class="deep-only">Eight termination paths</h3>
+  <div class="risk-list deep-only">
+    <div class="risk"><b>1 · Natural completion <span class="status">NORMAL</span></b><p>No runnable tool calls and no steering, aside, or follow-up messages remain.</p></div>
+    <div class="risk"><b>2 · Deadline <span class="status">HARD STOP</span></b><p>Checked at multiple action boundaries; pending calls receive aborted synthetic results.</p></div>
+    <div class="risk"><b>3 · Host gate <span class="status">PRE-CALL</span></b><p><code>beforeModelCall</code> returns <code>{stop:true}</code>; no provider request is sent.</p></div>
+    <div class="risk"><b>4 · Provider error/abort <span class="status">HARD EXIT</span></b><p>The settled assistant message has <code>error</code> or <code>aborted</code> stop reason.</p></div>
+    <div class="risk"><b>5 · External AbortSignal <span class="status">USER/HOST</span></b><p>User interrupt races the stream iterator; the runtime drains and synthesizes an aborted assistant turn.</p></div>
+    <div class="risk"><b>6 · Terminal tool yield <span class="status">GRACEFUL</span></b><p>A special abort symbol ends a subagent after its final typed <code>yield</code>; completed results are preserved.</p></div>
+    <div class="risk"><b>7 · Guard exhaustion <span class="status">FAIL</span></b><p>Three ignored soft-tool escalations or repeated Harmony-protocol leakage fail the stream to avoid infinite loops.</p></div>
+    <div class="risk"><b>8 · Paused-turn cap <span class="status">BOUNDED</span></b><p>Provider pause continuations are bounded (eight in the studied snapshot).</p></div>
+  </div>
+  <div class="two-col deep-only">
+    <div class="panel"><h3>Steering is not follow-up</h3><p><strong>Steer</strong> injects a message at the next step boundary and can interrupt tools marked interruptible. <strong>Follow-up</strong> waits until the current turn would otherwise finish. <strong>Aside</strong> enters at a boundary without canceling the current batch.</p></div>
+    <div class="panel"><h3>Failure is data</h3><p>Tool validation failures, missing tools, thrown exceptions, blocked calls, and infrastructure skips become <code>toolResult</code> messages with error details. A single tool failure normally does not crash the entire turn; the model receives the failure and decides what to do next.</p></div>
+  </div>
+  <div class="callout deep-only"><strong>No hidden “I have enough information” oracle</strong><p>Retrieval sufficiency is emergent: the model stops calling tools and emits a final response. OMP bounds pathological cases, but it does not calculate semantic completeness or confidence.</p></div>
+</section>
+<section class="section" id="tools">
+  <div class="section-head"><div class="section-num">03</div><h2>Tools, skills, MCP, and capability flood control</h2></div>
+  <p class="section-intro">Tools are executable typed capabilities. Skills are reusable instruction bundles. OMP keeps those concepts separate, then uses discovery and virtual URI schemes to avoid dumping every schema into every request.</p>
+  <h3>Tool contract</h3>
+  <pre>ToolDefinition / AgentTool
+  name, label, description, parameters
+  approval: read | write | exec
+  loadMode: essential | discoverable
+  execution: execute(args, signal, onUpdate, context)
+  optional: concurrency, speculation, interruptible, deferrable,
+            renderCall/renderResult, matcher snapshots for TTSR</pre>
+  <div class="two-col">
+    <div class="panel"><h3>Built-in tool families</h3><ul class="checklist"><li>Files/search: read, write, Hashline edit, AST edit, glob, grep, AST grep</li><li>Execution: persistent shell, Python/JS eval</li><li>Code intelligence: LSP, DAP debugger, security scan</li><li>Coordination: task, hub, todo, ask, yield</li><li>Memory: retain, recall, reflect, learn, manage skill</li><li>External: web search, browser/computer, GitHub, MCP</li></ul></div>
+    <div class="panel"><h3>Execution pipeline</h3><ol><li>Resolve canonical tool name.</li><li>Validate arguments against schema.</li><li>Resolve approval tier and per-tool override.</li><li>Run <code>beforeToolCall</code> hooks.</li><li>Execute with interrupt/cancellation signals.</li><li>Coerce output into valid content blocks.</li><li>Run <code>afterToolCall</code>; append result.</li></ol></div>
+  </div>
+  <h3 class="deep-only">Essential versus discoverable</h3>
+  <p class="deep-only">A small core stays in the provider’s top-level tool schema. Most specialized tools—including MCP and extension tools—can be mounted under <code>xd://</code>. The model reads <code>xd://</code> to list devices, reads <code>xd://&lt;tool&gt;</code> for documentation/schema, then writes JSON arguments to that URI to execute.</p>
+  <pre class="deep-only">read  xd://             → catalog of mounted tools
+read  xd://ast-grep     → docs + argument schema
+write xd://ast-grep     → execute with JSON body</pre>
+  <p class="deep-only">The studied snapshot budgets inline xdev docs at 48,000 characters, caps each device at 10,000 characters, and caps external MCP/custom summaries at 200 bytes. When xdev already documents tools in the system prompt, wire-level tool descriptions can be stripped to avoid duplication.</p>
+  <h3>Skills: discovery, listing, and injection</h3>
+  <table class="matrix">
+    <thead><tr><th>Stage</th><th>Mechanism</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Stage">Definition</td><td data-label="Mechanism"><code>&lt;skill&gt;/SKILL.md</code> with YAML <code>name</code>, <code>description</code>, optional <code>globs</code>, <code>alwaysApply</code>, <code>hide</code></td><td data-label="Why it matters">Content can remain external until a task actually needs it.</td></tr>
+      <tr><td data-label="Stage">Discovery</td><td data-label="Mechanism">Project/user OMP, Claude, Codex, plugin, custom, and managed-skill sources merge by priority</td><td data-label="Why it matters">Authored project behavior overrides auto-learned behavior.</td></tr>
+      <tr><td data-label="Stage">Prompt exposure</td><td data-label="Mechanism">Normally only <code>name: description</code> is listed; body loads via <code>skill://name</code></td><td data-label="Why it matters">Large skills do not permanently consume the context window.</td></tr>
+      <tr><td data-label="Stage">Invocation</td><td data-label="Mechanism"><code>/skill:name</code>, model read of <code>skill://</code>, glob autoload, or <code>alwaysApply</code></td><td data-label="Why it matters">User invocation and automatic provenance are rendered differently.</td></tr>
+      <tr><td data-label="Stage">Learning</td><td data-label="Mechanism"><code>manage_skill</code> writes managed skills at lowest precedence</td><td data-label="Why it matters">Self-authored procedures cannot silently override deliberate user/project skills.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>Skill ≠ tool.</strong><p>A skill changes instructions and may point at scripts/assets; it is not itself an executable capability unless paired with tools. A tool exposes an action schema and side effects; its prompt description teaches the model when and how to call it.</p></div>
+  <h3 class="deep-only">MCP bridge</h3>
+  <p class="deep-only">MCP servers are discovered, connected, and asked for <code>tools/list</code>. OMP sanitizes and namespaces names, caps them to provider limits, deduplicates collisions deterministically, strips its internal intent field before outbound calls, converts MCP content blocks back into agent content, and performs one auth or reconnect retry where appropriate. MCP tools are discoverable and write-tier by default in the code-study snapshot.</p>
+  <h3 class="deep-only">Context-growth controls around tools</h3>
+  <ul class="checklist deep-only"><li><strong>xdev mounting:</strong> removes discoverable schemas from the wire tool list.</li><li><strong>Schema-description pruning:</strong> avoids sending descriptions twice.</li><li><strong>Supersede pruning:</strong> older reads of the same path collapse.</li><li><strong>Shake:</strong> replaces large historical tool outputs with placeholders while protecting recent context and skill payloads.</li><li><strong>Roster notices:</strong> mid-session tool changes are announced so the model does not act on a stale catalog.</li></ul>
+</section>
+<section class="section" id="context">
+  <div class="section-head"><div class="section-num">04</div><h2>Context, session memory, long-term memory, and compaction</h2></div>
+  <p class="section-intro">There are three different things often called “memory”: the session journal, the live model context, and optional cross-session memory backends. Keeping them separate explains most of OMP’s behavior.</p>
+  <div class="flow three">
+    <div class="layer"><div class="eyebrow">Disk history</div><h3><code>SessionEntry[]</code></h3><p>Complete append-only JSONL tree: messages plus model, mode, compaction, rule, label, and credential-pin events.</p></div>
+    <div class="layer"><div class="eyebrow">Runtime projection</div><h3><code>AgentMessage[]</code></h3><p>One root-to-leaf branch with reset/compaction boundaries and unsafe partial turns removed.</p></div>
+    <div class="layer"><div class="eyebrow">Provider request</div><h3><code>Context</code></h3><p>System blocks, normalized tool schemas, and provider-wire messages after dialect transforms.</p></div>
+  </div>
+  <h3>Session reconstruction</h3>
+  <pre>locate current leaf
+  → walk parentId links to root (cycle-guarded)
+  → replay latest model / thinking / tier / mode / TTSR state
+  → choose reset or latest compaction boundary
+  → emit summary + kept tail, or entire branch
+  → convert entries to AgentMessage[]
+  → strip dangling tool calls and unsafe signed reasoning
+  → convertToLlm() + secret obfuscation + provider transform</pre>
+  <div class="callout"><strong>Branching does not delete.</strong><p><code>/tree</code> moves the current leaf in the same journal. <code>/branch</code> materializes a new resumable session. <code>/undo</code> can attach a branch summary. <code>/clear</code> appends a reset boundary; the old path remains exportable.</p></div>
+  <h3>Prompt-cache stability</h3>
+  <p>The <code>AppendOnlyContextManager</code> freezes a stable prefix of system blocks and tools, then appends messages. It fingerprints the prefix and hashes message content to find the longest unchanged byte prefix. After pruning or compaction, explicit cache invalidation prevents stale token and digest estimates. Date/cwd reminders can live in the first user turn rather than the system prompt so subsequent requests retain a stable prefix.</p>
+  <h3 class="deep-only">Token accounting</h3>
+  <p class="deep-only">Instead of re-tokenizing the full transcript every turn, OMP finds the newest settled assistant message with valid provider usage and treats that as an accounting anchor. It only estimates the unaccounted tail. Trigger logic uses the larger of provider-reported usage and a local estimate so on-wire compression cannot hide a nearly full context.</p>
+  <h3>Compaction ladder</h3>
+  <table class="matrix">
+    <thead><tr><th>Stage</th><th>What it does</th><th>What can be lost / constrained</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Stage"><strong>Supersede</strong></td><td data-label="What it does">Older reads of the same path become short markers; uneventful results can be elided.</td><td data-label="What can be lost / constrained">Old evidence disappears from live context, though history remains on disk.</td></tr>
+      <tr><td data-label="Stage"><strong>Age pruning</strong></td><td data-label="What it does">Beyond a protected recent token tail, large tool outputs are truncated only when savings justify cache churn.</td><td data-label="What can be lost / constrained">Detailed logs and outputs; protected skill payloads are exempt.</td></tr>
+      <tr><td data-label="Stage"><strong>Shake</strong></td><td data-label="What it does">Surgically replaces large tool bodies, fenced code, or top-level XML blocks.</td><td data-label="What can be lost / constrained">Debug detail; conservative, aggressive, and rescue profiles trade retention for space.</td></tr>
+      <tr><td data-label="Stage"><strong>Provider-native</strong></td><td data-label="What it does">OpenAI/Anthropic compaction stores opaque replacement or encrypted replay payloads.</td><td data-label="What can be lost / constrained">Payloads are provider-bound; a model/provider switch may force local re-summarization.</td></tr>
+      <tr><td data-label="Stage"><strong>Local summary</strong></td><td data-label="What it does">Choose a cut, summarize old history, keep a recent verbatim tail, carry read/modified file lists.</td><td data-label="What can be lost / constrained">Summaries are lossy; large histories fold through multiple windows.</td></tr>
+      <tr><td data-label="Stage"><strong>Snapcompact</strong></td><td data-label="What it does">Rasterize selected context into bitmap frames for a vision-capable model.</td><td data-label="What can be lost / constrained">Highly model-dependent and not semantically searchable like text.</td></tr>
+    </tbody>
+  </table>
+  <p class="deep-only">Automatic compaction triggers when usage exceeds <code>contextWindow − max(15% of window, reserveTokens)</code>; the studied default floor for reserve was 16,384 tokens. Local summarization keeps a recent tail (20,000 tokens in the study snapshot), never cuts at an orphan tool result, and can halve windows on provider overflow.</p>
+  <h3>Cross-session memory</h3>
+  <div class="two-col">
+    <div class="panel"><h3>Backends</h3><p>The studied code supports off/local plus optional Hindsight, Mnemopi, and Sharpshooter-style pipelines. Official README currently describes local, Hindsight, and Mnemopi. Exact backend names are version-sensitive.</p></div>
+    <div class="panel"><h3>Lifecycle</h3><p><code>retain</code> records facts, <code>recall</code> retrieves, <code>reflect</code>/<code>learn</code> extract reusable lessons, and consolidation can update summaries and managed skills for future sessions.</p></div>
+  </div>
+  <div class="callout"><strong>Correctness rule</strong><p>Memory is heuristic guidance, never authoritative repository state. Re-read the current file, branch, issue, or external source before acting on a remembered fact.</p></div>
+</section>
+<section class="section" id="retrieval">
+  <div class="section-head"><div class="section-num">05</div><h2>Retrieval from files, memory, the web, and virtual filesystems</h2></div>
+  <p class="section-intro">OMP does not have one global RAG engine. Retrieval is a family of channels with different ranking semantics, all chosen by the model.</p>
+  <table class="matrix">
+    <thead><tr><th>Channel</th><th>Query generation</th><th>Ranking</th><th>Hard limits in study snapshot</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Channel"><strong>glob</strong></td><td data-label="Query generation">Model supplies path patterns</td><td data-label="Ranking">Modification time, newest first</td><td data-label="Hard limits">200 paths; ~5 s timeout</td></tr>
+      <tr><td data-label="Channel"><strong>grep</strong></td><td data-label="Query generation">Model writes regex directly; Rust regex with PCRE2 fallback</td><td data-label="Ranking">No relevance score; round-robin across matching files</td><td data-label="Hard limits">20 files by default, 2,000 internal matches, 4 MB/file, ~30 s</td></tr>
+      <tr><td data-label="Channel"><strong>AST grep</strong></td><td data-label="Query generation">Model writes a structural tree-sitter pattern</td><td data-label="Ranking">Deterministic path + line order</td><td data-label="Hard limits">50 matches by default</td></tr>
+      <tr><td data-label="Channel"><strong>read</strong></td><td data-label="Query generation">Direct path or internal URI</td><td data-label="Ranking">None</td><td data-label="Hard limits">Selector/range-dependent</td></tr>
+      <tr><td data-label="Channel"><strong>Mnemopi memory</strong></td><td data-label="Query generation">Natural-language query embedded locally or remotely</td><td data-label="Ranking">Four retrieval voices → RRF fusion → MMR diversity rerank</td><td data-label="Hard limits">Top-k/config-dependent</td></tr>
+      <tr><td data-label="Channel"><strong>Web search</strong></td><td data-label="Query generation">Model text plus parsed site/date/title/filetype directives</td><td data-label="Ranking">Provider-dependent; constraints are leniently post-filtered</td><td data-label="Hard limits">Backend-dependent</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>File retrieval is not embedding RAG.</strong><p>Repository search is lexical or structural. No central keyword extractor, semantic index, or cross-tool relevance score sits in front of grep/glob/read. The model generates patterns, inspects results, and iterates.</p></div>
+  <h3 class="deep-only">A typical file-retrieval sequence</h3>
+  <pre class="deep-only">glob("packages/**")                 # orient by path/recency
+  → read("xd://")                   # discover specialized search tools
+  → grep("prepareProviderCall", …)  # lexical symbol/string search
+  → ast-grep("function $NAME…")     # structural search when syntax matters
+  → read(candidate paths/ranges)     # inspect primary evidence
+  → lsp(definition/references)       # authoritative symbol navigation
+  → stop when the model judges the evidence sufficient</pre>
+  <h3>Memory retrieval is the exception</h3>
+  <p>Mnemopi is a real retrieval pipeline. A query is embedded, then parallel vector, graph, fact, and temporal “voices” retrieve candidates. Reciprocal Rank Fusion combines their ranks; MMR then balances relevance against redundancy. The studied defaults were <code>RRF_K=60</code>, MMR <code>λ=0.7</code>, and <code>topK=10</code>. This is optional and applies to memory—not repository files.</p>
+  <pre class="deep-only">query
+  → embedding
+  → [vector | graph | fact | temporal]
+  → reciprocal-rank fusion: Σ 1 / (60 + rank)
+  → MMR: 0.7 × relevance − 0.3 × similarity-to-selected
+  → ranked memories</pre>
+  <h3>Web retrieval</h3>
+  <p>The model composes a query. OMP parses Google-style directives such as <code>site:</code>, <code>after:</code>, <code>before:</code>, <code>intitle:</code>, and <code>filetype:</code>, adapts syntax for the selected backend, then post-filters results. If one constraint dimension would remove every result, it is relaxed rather than forcing an empty set.</p>
+  <p class="deep-only">The public README currently says web search chains 23 providers and passes discovered URLs to <code>read</code>, which can convert web pages and PDFs into structured Markdown. A supplied code-study note counted 27+ provider implementations. Treat the exact count as version-sensitive; the architecture is the stable point.</p>
+  <h3>One filesystem-shaped interface</h3>
+  <p><code>read</code>/<code>grep</code>/<code>write</code> can address virtual schemes such as <code>pr://</code>, <code>issue://</code>, <code>agent://</code>, <code>skill://</code>, <code>ssh://</code>, <code>artifact://</code>, <code>conflict://</code>, and <code>xd://</code>. This reduces schema entropy: the model reuses file operations instead of learning a new tool per integration.</p>
+  <div class="callout"><strong>Retrieval weakness</strong><p>Because repository search is best-effort and model-driven, it can miss stale files, results beyond caps, semantically related code with different words, or pages a web backend ranks poorly. There is no global recall guarantee.</p></div>
+</section>
+<section class="section" id="prompts">
+  <div class="section-head"><div class="section-num">06</div><h2>Prompt templates and composition</h2></div>
+  <p class="section-intro">Prompts are not one giant string. OMP composes Handlebars templates by role, feature, mode, and tool surface, then preserves stable segments for provider caching.</p>
+  <h3>Where prompt text enters</h3>
+  <table class="matrix">
+    <thead><tr><th>Prompt family</th><th>Purpose</th><th>Delivery</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Prompt family"><strong>System root</strong></td><td data-label="Purpose">Core workflow, evidence/completeness contract, yielding, critical rules, personality</td><td data-label="Delivery">System prompt segments</td></tr>
+      <tr><td data-label="Prompt family"><strong>Project/environment</strong></td><td data-label="Purpose">Repository context, workspace tree, context files, machine capabilities, completion requirements</td><td data-label="Delivery">Project/footer system blocks; volatile date/cwd can move to user reminder</td></tr>
+      <tr><td data-label="Prompt family"><strong>Mode</strong></td><td data-label="Purpose">Plan, goal, vibe/director, orchestrator, subagent, review, auto-continue</td><td data-label="Delivery">Conditional system or developer/custom messages</td></tr>
+      <tr><td data-label="Prompt family"><strong>Tool descriptions</strong></td><td data-label="Purpose">When/how to call bash, read, LSP, task, memory, web search, etc.</td><td data-label="Delivery">Tool <code>description</code> or xdev documentation</td></tr>
+      <tr><td data-label="Prompt family"><strong>Skills/rules</strong></td><td data-label="Purpose">Reusable procedures and conditional policies</td><td data-label="Delivery">Catalog entry, on-demand URI load, always-apply body, or stream-time TTSR injection</td></tr>
+      <tr><td data-label="Prompt family"><strong>Maintenance</strong></td><td data-label="Purpose">Compaction summaries, context-note reminder, memory extraction/consolidation</td><td data-label="Delivery">Specialized background/model calls and synthetic messages</td></tr>
+    </tbody>
+  </table>
+  <h3>Build order</h3>
+  <pre>buildSystemPrompt()
+  parallel-load with deadline/fallback:
+    custom SYSTEM.md or default system-prompt.md
+    APPEND_SYSTEM.md
+    discovered project context files
+    skills catalog / always-apply skills
+    workspace tree + active-repo context
+    machine/personality blocks
+  render default or custom root template
+  append project/environment footer
+
+per request:
+  prepend plan/goal/vibe context where active
+  append leaf-visible session messages
+  add volatile date/cwd reminder outside stable system prefix
+  normalize tools and provider dialect</pre>
+  <h3 class="deep-only">High-value template families</h3>
+  <div class="risk-list deep-only">
+    <div class="risk"><b><code>system/system-prompt.md</code></b><p>Defines the gather → plan → execute → verify → commit → respond discipline and top-level behavioral contract.</p></div>
+    <div class="risk"><b><code>system/plan-mode-active.md</code></b><p>Makes the main agent read-only, turns the plan into an executable spec, and routes approval through the plan surface.</p></div>
+    <div class="risk"><b><code>system/orchestrate-notice.md</code></b><p>Requires complete subagent briefs and verification of produced artifacts rather than trusting summaries.</p></div>
+    <div class="risk"><b><code>tools/*.md</code></b><p>Per-tool behavioral policy: LSP before cross-file rename, dedicated tools before shell equivalents, schema and safety guidance.</p></div>
+    <div class="risk"><b><code>agents/*.md</code></b><p>Specialized reviewer, scout, security, and generic worker roles with bounded scope and output formats.</p></div>
+    <div class="risk"><b><code>memories/*.md</code></b><p>Extraction, friction-based admission, consolidation, and read-path guidance for cross-session memory.</p></div>
+    <div class="risk"><b><code>steering/*.md</code></b><p>How mid-turn user interjections and parent-agent messages are represented and acknowledged.</p></div>
+    <div class="risk"><b><code>security/*.md</code></b><p>Coordinates scan requests, validation, and findings rather than adding one undifferentiated security paragraph.</p></div>
+  </div>
+  <h3>Customization hierarchy</h3>
+  <p><code>SYSTEM.md</code> or <code>--system-prompt</code> replaces the default root template; <code>APPEND_SYSTEM.md</code> or <code>--append-system-prompt</code> extends it; <code>TITLE_SYSTEM.md</code> affects automatic session titles only. Internal <code>{{variable}}</code> placeholders are template inputs; user text is treated as plain text rather than recursively compiled.</p>
+  <div class="callout"><strong>Prompt engineering here is architecture.</strong><p>Tool descriptions, mode prompts, memory prompts, and rules are activated at different times. The design goal is to place instructions at the cheapest reliable layer: stable system prefix, on-demand skill, per-tool description, or stream-time interrupt.</p></div>
+</section>
+<section class="section" id="rules">
+  <div class="section-head"><div class="section-num">07</div><h2>Rules and Time-Traveling Stream Rules</h2></div>
+  <p class="section-intro">Rules are bucketed by delivery cost. Always-apply rules spend tokens every turn; rulebook entries are retrieved on demand; TTSR rules stay dormant until streamed output matches.</p>
+  <div class="flow three">
+    <div class="layer"><div class="eyebrow">Always apply</div><h3>Prompt-time</h3><p>Full rule body enters the request before generation.</p></div>
+    <div class="layer"><div class="eyebrow">Rulebook</div><h3>On demand</h3><p>Name/description is listed; body resolves through <code>rule://</code>.</p></div>
+    <div class="layer"><div class="eyebrow">TTSR</div><h3>Stream-time</h3><p>Regex or AST condition watches deltas and injects only on a match.</p></div>
+  </div>
+  <pre class="deep-only">model stream delta
+  → TTSR coordinator checks text / thinking / tool-argument scope
+  → regex or in-memory AST match
+  → abort current stream
+  → append &lt;system-interrupt reason="rule_violation"&gt;
+  → retry with preserve/discard context policy
+
+non-interrupting tool match
+  → fold &lt;system-reminder&gt; into tool result
+  → continue loop</pre>
+  <p>TTSR injection bookkeeping is persisted as session entries so a resumed or compacted session remembers which rules fired and can enforce repeat-gap policy. AST rules operate only when the tool exposes a reconstructible source snapshot and a usable file extension.</p>
+  <div class="callout"><strong>Why this is distinctive</strong><p>It trades permanent prompt tax for reactive enforcement. The trade-off is complexity: regex/AST match quality, abort/retry semantics, and repeated-injection state become part of correctness.</p></div>
+</section>
+
+<section class="section" id="agents">
+  <div class="section-head"><div class="section-num">08</div><h2>Subagents, speculative execution, hooks, and extensions</h2></div>
+  <p class="section-intro">OMP has multiple coordination layers: typed worker tasks, an independent advisor, in-loop hooks, full-trust extensions, and speculative read execution.</p>
+  <table class="matrix">
+    <thead><tr><th>Mechanism</th><th>Isolation / contract</th><th>Return path</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Mechanism"><strong>task subagent</strong></td><td data-label="Isolation / contract">Fresh <code>AgentSession</code>; optional COW/reflink/overlay workspace isolation; explicit task and output schema</td><td data-label="Return path">Typed <code>yield</code> triggers graceful terminal-tool stop</td></tr>
+      <tr><td data-label="Mechanism"><strong>advisor</strong></td><td data-label="Isolation / contract">Separate model, transcript, context, and budget; observes main-agent deltas</td><td data-label="Return path">Severity-tagged steering note; main agent may correct or disagree</td></tr>
+      <tr><td data-label="Mechanism"><strong>hook</strong></td><td data-label="Isolation / contract">Narrow event API inside the same process; may block/replace selected events</td><td data-label="Return path">Injected message, modified args/result, or persisted custom entry</td></tr>
+      <tr><td data-label="Mechanism"><strong>extension</strong></td><td data-label="Isolation / contract">Full in-process API; can register tools, commands, shortcuts, providers, renderers</td><td data-label="Return path">Shares normal event/tool/session surfaces</td></tr>
+    </tbody>
+  </table>
+  <h3 class="deep-only">Speculative execution</h3>
+  <p class="deep-only">A per-assistant-message coordinator can start read-only tool candidates before the model commits to them. Candidates form a dependency DAG, run with a bounded in-flight count (two in the studied snapshot), and are reused only when arguments match, resources are unchanged, and host validation passes. Side-effecting work waits for commitment; vetoed parents discard dependents.</p>
+  <h3 class="deep-only">Workspace isolation is not process sandboxing</h3>
+  <p class="deep-only">Subagent workspaces can use APFS clones, btrfs/zfs reflinks, overlayfs, projfs, or a copy fallback. That protects file trees and avoids sibling merge collisions. It does not automatically remove ambient network, credential, or subprocess privileges from the executing process.</p>
+  <div class="callout"><strong>Trust boundary</strong><p>Hooks are narrower but still execute local code. Extensions run in-process with broad authority. Treat project-local extensions and plugin packages as software installation, not as harmless prompt text.</p></div>
+</section>
+
+<section class="section" id="security">
+  <div class="section-head"><div class="section-num">09</div><h2>Security model: policy controls without complete containment</h2></div>
+  <p class="section-intro">OMP provides rich approval and intervention points, but those controls do not turn the host process into a sandbox.</p>
+  <div class="risk-list">
+    <div class="risk"><b>Approval tiers <span class="status">READ / WRITE / EXEC</span></b><p>Global modes plus per-tool allow/deny/prompt overrides decide whether a call may run.</p></div>
+    <div class="risk"><b>Pre/post hooks <span class="status">IN-LOOP</span></b><p>Arguments can be rewritten or blocked before execution; results can be rewritten after.</p></div>
+    <div class="risk"><b>Secret obfuscation <span class="status">TRANSCRIPT</span></b><p>Known secrets are replaced before model/advisor exposure and persisted sessions retain obfuscated forms.</p></div>
+    <div class="risk"><b>External content <span class="status">UNTRUSTED</span></b><p>Prompt templates warn that pages, tool results, and UI text do not authorize consequential actions.</p></div>
+    <div class="risk"><b>Project trust <span class="status">GAP</span></b><p>The supplied code study found no project-level trust gate for local OMP extensions/config.</p></div>
+    <div class="risk"><b>Host privileges <span class="status">GAP</span></b><p>An approved shell or in-process extension inherits what the OMP process can access unless an external sandbox restricts it.</p></div>
+  </div>
+  <div class="callout" style="border-left-color:var(--danger);background:var(--danger-soft)"><strong>Approval ≠ containment.</strong><p>An approval dialog answers “may this action run?” It does not constrain what the resulting process, extension, MCP server, or nested shell can reach. For untrusted repositories, use a container/VM/OS sandbox, reduce credentials and egress, disable project-local extensions/rules/skills, and pin versions.</p></div>
+  <p class="deep-only">Current official approval documentation states that <code>yolo</code> is the default. Because it auto-approves read, write, and exec tiers, confirm the active configuration explicitly before opening an untrusted repository or running headless automation.</p>
+</section>
+<section class="section" id="sources">
+  <div class="section-head"><div class="section-num">10</div><h2>Source map, confidence, and version limits</h2></div>
+  <p class="section-intro">Official public pages support the product-level claims. The deeper loop, context, retrieval, and prompt details come from the supplied code-study notebook, which traced concrete files and line ranges in a rapidly changing repository.</p>
+  <div class="sources">
+    <div class="source"><div class="type">PRIMARY</div><div><strong>Official README — feature surface and architecture claims</strong><br><a href="https://github.com/can1357/oh-my-pi/blob/HEAD/README.md" target="_blank" rel="noopener noreferrer">github.com/can1357/oh-my-pi/blob/HEAD/README.md</a></div></div>
+    <div class="source"><div class="type">PRIMARY</div><div><strong>Official approval-mode documentation</strong><br><a href="https://github.com/can1357/oh-my-pi/blob/main/docs/approval-mode.md" target="_blank" rel="noopener noreferrer">github.com/can1357/oh-my-pi/blob/main/docs/approval-mode.md</a></div></div>
+    <div class="source"><div class="type">PRIMARY</div><div><strong>Official extension-runtime documentation</strong><br><a href="https://github.com/can1357/oh-my-pi/blob/main/docs/extensions.md" target="_blank" rel="noopener noreferrer">github.com/can1357/oh-my-pi/blob/main/docs/extensions.md</a></div></div>
+    <div class="source"><div class="type">AUTHOR</div><div><strong>“The Harness Problem” — Hashline design and author benchmark</strong><br><a href="https://blog.can.ac/2026/02/12/the-harness-problem/" target="_blank" rel="noopener noreferrer">blog.can.ac/2026/02/12/the-harness-problem/</a></div></div>
+  </div>
+  <h3>Supplied code-study notes used in this revision</h3>
+  <table class="matrix">
+    <thead><tr><th>Notebook</th><th>Primary coverage</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Notebook"><code>D0001_architecture.md</code></td><td data-label="Primary coverage">Monorepo map, session wiring, end-to-end prompt flow</td></tr>
+      <tr><td data-label="Notebook"><code>D0008_major_agent_loop.md</code></td><td data-label="Primary coverage">Nested loop, stop reasons, aborts, steering, error propagation</td></tr>
+      <tr><td data-label="Notebook"><code>D0013_skil_n_tool.md</code></td><td data-label="Primary coverage">Skill discovery/injection, MCP bridge, xdev flood controls</td></tr>
+      <tr><td data-label="Notebook"><code>D0006_context_management.md</code> + <code>D0006_context_session.md</code></td><td data-label="Primary coverage">JSONL tree, context projection, caching, pruning, compaction</td></tr>
+      <tr><td data-label="Notebook"><code>D0011_retreival_detail.md</code></td><td data-label="Primary coverage">File, memory, and web retrieval/ranking</td></tr>
+      <tr><td data-label="Notebook"><code>D0012_prompt_template.md</code></td><td data-label="Primary coverage">Prompt directories, composition, tool policies, template variables</td></tr>
+      <tr><td data-label="Notebook"><code>D0009_ohmypi_other_than_context_and_loop.md</code></td><td data-label="Primary coverage">Extensions, subagents, speculation, TTSR, permissions, native crates</td></tr>
+    </tbody>
+  </table>
+  <div class="limits"><strong>Version warning.</strong> The code-study notes span snapshots around v18.1.x–v18.4.x. Module names, defaults, counts, and line numbers can drift. Stable conclusions are the architectural boundaries and control flow; re-check exact constants against the pinned commit before implementation or audit work. The official approval documentation currently states that <code>yolo</code> is the default and explicitly says approval policy is not process/filesystem containment.</div>
+</section>
+<footer><span>Oh My Pi internal-mechanics report · revised 2026-09-28 PDT</span><span>English default · deep-dive view default</span></footer>
+</main>
+</div>
+<script>
+(function(){
+  var s=document.getElementById('summaryBtn'),d=document.getElementById('deepBtn');
+  function mode(x){var q=x==='summary';document.body.classList.toggle('summary-mode',q);s.classList.toggle('active',q);d.classList.toggle('active',!q);s.setAttribute('aria-pressed',q);d.setAttribute('aria-pressed',!q);}
+  s.addEventListener('click',function(){mode('summary')});d.addEventListener('click',function(){mode('deep')});
+  var links=[].slice.call(document.querySelectorAll('.rail a'));
+  var sections=links.map(function(a){return document.querySelector(a.getAttribute('href'))}).filter(Boolean);
+  if('IntersectionObserver'in window){var io=new IntersectionObserver(function(es){var v=es.filter(function(e){return e.isIntersecting}).sort(function(a,b){return b.intersectionRatio-a.intersectionRatio})[0];if(v)links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+v.target.id)})},{rootMargin:'-15% 0px -65% 0px',threshold:[0,.2,.5]});sections.forEach(function(x){io.observe(x)})}
+  mode('deep');
+}());
+</script>
+</body>
+</html>

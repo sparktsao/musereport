@@ -1,0 +1,50 @@
+{
+  "Stanford AI Systems Lecture: Video Summary & Interview Practice.html": {
+    "title": "Stanford AI Systems: From Models to Agents",
+    "description": "A bilingual lecture companion covering the AI systems stack, technical decisions, and interview practice.",
+    "topic": "AI systems",
+    "language": "EN / 繁中"
+  },
+  "Enterprise Agent Evaluation Metrics Report.html": {
+    "title": "Enterprise Agent Evaluation",
+    "description": "A practical measurement framework for LLMs, retrieval, feedback, latency, and production release gates.",
+    "topic": "Evaluation",
+    "language": "English"
+  },
+  "AI Agent, Harness & Skill Design Practices Report.html": {
+    "title": "AI Agent、Harness 與 Skill 設計實務",
+    "description": "從 agent loop、harness 到 skills：探索可落地的架構、安全邊界與評測方法。",
+    "topic": "Agent engineering",
+    "language": "繁體中文"
+  },
+  "AI Engineer Capability Evaluation Research.html": {
+    "title": "AI 工程師能力評估研究",
+    "description": "以可觀察行為與決策證據評估 AI 工程師，涵蓋能力框架、面試與隱私。",
+    "topic": "Evaluation",
+    "language": "繁體中文"
+  },
+  "Oh My Pi In-Depth Research Report (English).html": {
+    "title": "Oh My Pi: In-Depth Research",
+    "description": "Architecture, Hashline editing, context management, security boundaries, and adoption tradeoffs.",
+    "topic": "Agent engineering",
+    "language": "English"
+  },
+  "ohmypi.html": {
+    "title": "How Oh My Pi Actually Works",
+    "description": "A technical deep dive into the agent loop, tools, memory, retrieval, prompts, and orchestration.",
+    "topic": "Agent engineering",
+    "language": "English"
+  },
+  "NVIDIA2026AIRoadmapReport.html": {
+    "title": "NVIDIA 2026 AI Roadmap",
+    "description": "Connecting Rubin hardware, agentic training, distributed inference, and the research behind the platform.",
+    "topic": "AI systems",
+    "language": "English"
+  },
+  "TaiwanTechSummit2026.html": {
+    "title": "Taiwan Tech Summit 2026 筆記",
+    "description": "四場 Session 的共同主線：Physical AI、AI Memory、World Model 與有邊界的自主行動。",
+    "topic": "Industry insights",
+    "language": "繁體中文"
+  }
+}

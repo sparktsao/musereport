@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MuseSpark's research library: reports on AI systems, agent engineering, evaluation, and industry insights.">
+  <meta name="theme-color" content="#f6f5f0">
+  <title>MuseSpark — Research Library</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23274136'/%3E%3Ctext x='7' y='24' fill='%23f6f5f0' font-size='24' font-family='Georgia'%3Em%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/catalog.css">
+  <script src="assets/catalog.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#reports">Skip to reports</a>
+  <div class="page">
+    <header><a class="brand" href="./"><span class="brand-mark" aria-hidden="true">m<span>✳</span></span>MuseSpark</a><span class="header-note">RESEARCH &amp; PERSPECTIVES</span></header>
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div><p class="eyebrow"><span></span> THE RESEARCH LIBRARY</p><h1 id="page-title">Ideas worth<br><em>looking into.</em></h1><p class="lede">A collection of deep dives into AI systems, agent engineering, and the questions shaping what comes next.</p></div>
+        <aside class="library-note"><span class="note-index">FIELD NOTES / 2026</span><div class="orbit" aria-hidden="true"><span>✳</span></div><p>From architecture to application.<br>From questions to evidence.</p><span class="note-count">{{COUNT}} REPORTS &nbsp; / &nbsp; EN + 繁中</span></aside>
+      </section>
+      <section id="reports" aria-labelledby="reports-title">
+        <div class="section-heading"><h2 id="reports-title">Browse the collection <span>{{COUNT}}</span></h2><span class="section-note">Independent reading. Connected ideas.</span></div>
+        <div class="filters" hidden>
+          <div class="search-wrap"><label for="search">Search the library</label><input id="search" type="search" placeholder="Search reports, topics, or keywords…" autocomplete="off"></div>
+          <div><label for="topic">Topic</label><select id="topic"><option value="">All topics</option>{{TOPICS}}</select></div>
+          <div><label for="language">Language</label><select id="language"><option value="">All languages</option><option value="en">English</option><option value="zh">繁體中文</option></select></div>
+        </div>
+        <p class="results" role="status" aria-live="polite" aria-atomic="true">Showing all {{COUNT}} reports</p>
+        <div class="grid">{{CARDS}}</div>
+        <div class="empty" hidden><h3>No matching reports</h3><p>Try a different keyword or broaden your filters.</p><button type="button" id="reset">Clear filters</button></div>
+        <noscript><p>All reports are listed above. Enable JavaScript to search and filter.</p></noscript>
+      </section>
+    </main>
+    <footer><span class="footer-brand">MuseSpark <span>/ Research Library</span></span><span>Stay curious. Read deeply.</span></footer>
+  </div>
+</body>
+</html>

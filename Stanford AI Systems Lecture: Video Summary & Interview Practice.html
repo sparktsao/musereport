@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Stanford AI Systems Lecture: Video Summary & Interview Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      color-scheme:light dark;
+      --bg:#f4f7f8;--paper:#ffffff;--ink:#132027;--muted:#53636c;--line:#ccd7db;
+      --accent:#d3472f;--accent-2:#147d78;--soft:#e9f1f2;--soft2:#fbeae6;--shadow:0 14px 40px rgba(24,45,54,.09);
+      --serif:"Source Serif 4",Georgia,serif;--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",monospace;
+    }
+    @media(prefers-color-scheme:dark){:root{
+      --bg:#0d1519;--paper:#142127;--ink:#edf4f5;--muted:#aebdc2;--line:#304149;
+      --accent:#ff7961;--accent-2:#4ec7bd;--soft:#1b3037;--soft2:#35231f;--shadow:0 18px 48px rgba(0,0,0,.24);
+    }}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65}
+    a{color:inherit}button{font:inherit}.page{width:min(1180px,calc(100% - 40px));margin:0 auto;padding:28px 0 80px}
+    .top-tools{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:22px;position:sticky;top:8px;z-index:20;pointer-events:none}
+    .segmented{pointer-events:auto;display:flex;background:var(--paper);border:1px solid var(--line);padding:3px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
+    .segmented button{border:0;background:transparent;color:var(--muted);padding:7px 11px;cursor:pointer;font-size:.82rem;font-weight:600}
+    .segmented button.active{background:var(--ink);color:var(--paper)}
+    .hero{background:var(--paper);border-top:6px solid var(--accent);box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.55fr);min-height:440px}
+    .hero-copy{padding:clamp(30px,5vw,68px);display:flex;flex-direction:column;justify-content:space-between}
+    .eyebrow{font-family:var(--mono);font-size:.78rem;color:var(--accent);letter-spacing:.04em;margin:0 0 18px}
+    h1{font:700 clamp(2.4rem,6vw,5.4rem)/.96 var(--serif);letter-spacing:-.045em;margin:0;max-width:850px}
+    .deck{font-size:clamp(1.05rem,2vw,1.3rem);max-width:720px;color:var(--muted);margin:28px 0 0}
+    .hero-side{border-left:1px solid var(--line);padding:32px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,var(--soft),transparent)}
+    .stat{padding:15px 0;border-bottom:1px solid var(--line)}.stat:last-child{border-bottom:0}.stat b{display:block;font-family:var(--serif);font-size:1.55rem}.stat span{color:var(--muted);font-size:.84rem}
+    .source-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--accent);font-weight:600;margin-top:28px}.source-link:hover{text-decoration:underline}.source-link svg{width:18px}
+    .notice{margin:22px 0 0;padding:18px 20px;background:var(--soft2);border-left:4px solid var(--accent);font-size:.92rem}.notice strong{display:block;margin-bottom:4px}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:44px;margin-top:70px}.rail{position:sticky;top:70px;align-self:start}.rail a{display:block;text-decoration:none;color:var(--muted);font-size:.9rem;padding:7px 0}.rail a:hover,.rail a.active{color:var(--accent);font-weight:600}.rail .rail-label{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:10px}
+    main section{scroll-margin-top:80px;margin-bottom:86px}.section-head{display:grid;grid-template-columns:80px 1fr;gap:20px;align-items:start;margin-bottom:30px}.section-num{font:500 1rem var(--mono);color:var(--accent);padding-top:8px}.section-head h2{font:700 clamp(2rem,4vw,3.4rem)/1 var(--serif);letter-spacing:-.035em;margin:0}.section-intro{color:var(--muted);font-size:1.05rem;max-width:720px;margin:14px 0 0}
+    .timeline{position:relative}.timeline:before{content:"";position:absolute;left:59px;top:6px;bottom:6px;width:1px;background:var(--line)}.chapter{display:grid;grid-template-columns:120px minmax(0,1fr);gap:22px;padding:0 0 42px;position:relative}.time{font:500 .86rem var(--mono);color:var(--accent);padding-top:5px}.time:after{content:"";position:absolute;left:54px;top:9px;width:11px;height:11px;background:var(--paper);border:3px solid var(--accent);border-radius:50%}.chapter h3{font:700 1.35rem/1.2 var(--serif);margin:0 0 10px}.chapter p{margin:0;color:var(--muted)}
+    .tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.tool{padding:18px;background:var(--soft)}.tool b{display:block;margin-bottom:6px;color:var(--ink)}.tool p{font-size:.91rem}
+    .stack{background:var(--ink);color:var(--paper);padding:34px;display:grid;grid-template-columns:1fr 1.2fr;gap:36px;align-items:center}.stack h3{font:700 2rem/1 var(--serif);margin:0 0 12px}.stack p{margin:0;opacity:.75}.layers{display:grid;gap:7px}.layer{padding:12px 16px;border:1px solid color-mix(in srgb,var(--paper) 32%,transparent);display:flex;justify-content:space-between;align-items:center}.layer span{font-family:var(--mono);font-size:.78rem;opacity:.72}.layer:nth-child(1){background:color-mix(in srgb,var(--accent) 68%,transparent)}.layer:nth-child(2){background:color-mix(in srgb,var(--accent-2) 62%,transparent)}
+    .decision-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.decision{background:var(--paper);border:1px solid var(--line);padding:24px}.decision .problem{font-family:var(--mono);font-size:.76rem;color:var(--muted)}.decision strong{display:block;font:700 1.55rem var(--serif);margin:8px 0}.arrow{color:var(--accent);font-weight:700}.decision p{margin:0;color:var(--muted);font-size:.92rem}
+    .principle{margin-top:14px;background:var(--accent);color:#fff;padding:24px 28px;display:flex;gap:24px;align-items:center}.principle strong{font:700 1.4rem var(--serif)}.principle span{opacity:.9}
+    .qa-controls{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-bottom:22px}.filters{display:flex;flex-wrap:wrap;gap:7px}.filter,.drill-btn,.reveal{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:8px 12px;cursor:pointer}.filter.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}.drill-btn{border-color:var(--accent);color:var(--accent);font-weight:600}.drill-btn:hover{background:var(--accent);color:#fff}
+    .qa-list{display:grid;gap:10px}.qa{background:var(--paper);border:1px solid var(--line)}.qa.hidden{display:none}.question{width:100%;border:0;background:transparent;color:var(--ink);padding:22px;display:grid;grid-template-columns:58px 1fr 22px;gap:12px;text-align:left;cursor:pointer;align-items:start}.qnum{font:500 .82rem var(--mono);color:var(--accent)}.qtext{font-weight:600;font-size:1.02rem}.chev{transition:transform .2s;color:var(--muted)}.qa.open .chev{transform:rotate(45deg)}.answer{display:none;padding:0 22px 24px 92px;color:var(--muted)}.qa.open .answer{display:block}.answer p{margin:0}.topic{display:inline-block;font:500 .7rem var(--mono);color:var(--accent-2);margin-bottom:8px}
+    .drill{display:none;background:var(--paper);border:1px solid var(--line);padding:clamp(24px,5vw,48px)}.drill.open{display:block}.drill-top{display:flex;justify-content:space-between;color:var(--muted);font:500 .78rem var(--mono)}.drill h3{font:700 clamp(1.6rem,3vw,2.4rem)/1.15 var(--serif);margin:30px 0}.drill-answer{display:none;background:var(--soft);padding:22px;color:var(--muted);margin:16px 0}.drill-answer.open{display:block}.drill-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.drill-actions button{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:9px 14px;cursor:pointer}.drill-actions .primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .takeaways{display:grid;grid-template-columns:1fr 1fr;gap:14px}.takeaway{padding:24px;background:var(--soft)}.takeaway b{font:700 1.25rem var(--serif);display:block;margin-bottom:6px}.takeaway p{margin:0;color:var(--muted)}
+    footer{border-top:1px solid var(--line);padding-top:26px;color:var(--muted);font-size:.85rem;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.foot-links a{color:var(--accent);text-decoration:none}
+    [data-lang="zh"]{display:none}body.zh [data-lang="en"]{display:none}body.zh [data-lang="zh"]{display:block}span[data-lang="zh"],strong[data-lang="zh"]{display:none}body.zh span[data-lang="en"],body.zh strong[data-lang="en"]{display:none}body.zh span[data-lang="zh"],body.zh strong[data-lang="zh"]{display:inline}
+    @media(max-width:850px){.page{width:min(100% - 24px,720px);padding-top:14px}.hero{grid-template-columns:1fr}.hero-side{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,1fr);gap:0 18px}.layout{grid-template-columns:1fr;margin-top:48px}.rail{position:static;display:flex;gap:14px;overflow:visible;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}.rail .rail-label{width:100%;margin:0}.rail a{padding:3px 0}.stack{grid-template-columns:1fr}.tool-grid{grid-template-columns:1fr}.section-head{grid-template-columns:52px 1fr}.timeline:before{left:39px}.chapter{grid-template-columns:82px 1fr}.time:after{left:34px}.answer{padding-left:22px}.question{grid-template-columns:48px 1fr 18px}}
+    @media(max-width:560px){.top-tools{position:static}.hero-copy{padding:28px 22px}.hero-side{padding:22px}.decision-grid,.takeaways{grid-template-columns:1fr}.principle{align-items:flex-start;flex-direction:column;gap:6px}.section-head{grid-template-columns:1fr;gap:4px}.section-num{padding:0}.chapter{grid-template-columns:1fr;padding-left:32px}.timeline:before{left:5px}.time:after{left:0}.hero-side{grid-template-columns:1fr 1fr}.stack{padding:24px}.qa-controls{display:block}.drill-btn{margin-top:12px;width:100%}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.chev{transition:none}}
+    @media print{.top-tools,.rail,.qa-controls,.drill{display:none!important}.page{width:100%;padding:0}.layout{display:block}.hero{box-shadow:none}.qa .answer{display:block}.qa{break-inside:avoid}main section{margin-bottom:42px}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-tools" aria-label="Language">
+      <div class="segmented">
+        <button class="lang-btn active" data-set-lang="en">EN</button><button class="lang-btn" data-set-lang="zh">繁中</button>
+      </div>
+    </div>
+
+    <header class="hero">
+      <div class="hero-copy">
+        <div>
+          <p class="eyebrow"><span data-lang="en">LECTURE REPORT · OCT 2026</span><span data-lang="zh">講座報告 · 2026 年 10 月</span></p>
+          <h1 data-lang="en">From base model to agentic workflow</h1>
+          <h1 data-lang="zh">從基礎模型到 Agentic Workflow</h1>
+          <p class="deck" data-lang="en">A structured reading of Gary Chen’s 26-minute map of prompts, fine-tuning, RAG, agents, evaluation, and multi-agent systems—plus 14 interview questions.</p>
+          <p class="deck" data-lang="zh">以結構化方式整理 Gary Chen 的 26 分鐘技術地圖：Prompt、Fine-tuning、RAG、Agent、評估與 Multi-Agent，並附 14 題面試練習。</p>
+        </div>
+        <a class="source-link" href="https://www.youtube.com/watch?v=eKW9ITaltWw" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5.5v13l11-6.5L8 5.5Z" fill="currentColor"/></svg>
+          <span data-lang="en">Watch the source video</span><span data-lang="zh">觀看來源影片</span>
+        </a>
+      </div>
+      <aside class="hero-side" aria-label="Video facts">
+        <div class="stat"><b>~26 min</b><span data-lang="en">Gary Chen’s video</span><span data-lang="zh">Gary Chen 的整理影片</span></div>
+        <div class="stat"><b>~2 hr</b><span data-lang="en">Stanford source lecture</span><span data-lang="zh">Stanford 原始講座</span></div>
+        <div class="stat"><b>347,293</b><span data-lang="en">views · snapshot Oct 2, 2026</span><span data-lang="zh">觀看 · 截至 2026/10/2</span></div>
+        <div class="stat"><b>14</b><span data-lang="en">interview questions</span><span data-lang="zh">面試練習題</span></div>
+      </aside>
+    </header>
+
+    <div class="notice">
+      <strong data-lang="en">Method note</strong><strong data-lang="zh">方法說明</strong>
+      <span data-lang="en">YouTube’s transcript panel stayed in a perpetual loading state and the captions API route failed, so no verbatim transcript was available. This report is reconstructed from the video’s own chapter timestamps plus the source Stanford lecture’s documented content. The chapter structure and technical content are faithful; Gary Chen’s exact narration wording is reconstructed.</span>
+      <span data-lang="zh">YouTube 逐字稿面板持續載入，字幕 API 亦失敗，因此無法取得逐字稿。本報告依影片頁面的章節時間戳與 Stanford 原始講座的公開內容重建。章節結構與技術內容忠實；Gary Chen 的確切口述措辭則為重建。</span>
+    </div>
+
+    <div class="layout">
+      <nav class="rail" aria-label="Report sections">
+        <div class="rail-label"><span data-lang="en">CONTENTS</span><span data-lang="zh">目錄</span></div>
+        <a href="#overview"><span data-lang="en">01 · Mental model</span><span data-lang="zh">01 · 心智模型</span></a>
+        <a href="#chapters"><span data-lang="en">02 · Chapters</span><span data-lang="zh">02 · 章節摘要</span></a>
+        <a href="#decisions"><span data-lang="en">03 · Decisions</span><span data-lang="zh">03 · 技術決策</span></a>
+        <a href="#interview"><span data-lang="en">04 · Interview drill</span><span data-lang="zh">04 · 面試演練</span></a>
+        <a href="#takeaways"><span data-lang="en">05 · Takeaways</span><span data-lang="zh">05 · 重點結論</span></a>
+      </nav>
+
+      <main>
+        <section id="overview">
+          <div class="section-head"><div class="section-num">01</div><div><h2 data-lang="en">The vertical stack</h2><h2 data-lang="zh">縱向能力堆疊</h2><p class="section-intro" data-lang="en">The lecture’s central move is to stop treating AI development as a model-shopping exercise. Capability comes from the system around the model.</p><p class="section-intro" data-lang="zh">這堂課的核心轉向：不要把 AI 開發視為「選更大模型」。真正的能力來自模型周圍的系統設計。</p></div></div>
+          <div class="stack">
+            <div><h3 data-lang="en">Don’t only move sideways.</h3><h3 data-lang="zh">不要只橫向換模型。</h3><p data-lang="en">A frozen, stateless predictor gains access, control, and agency as layers are added above it.</p><p data-lang="zh">基礎模型是凍結、無狀態的預測器；向上加層，才逐步獲得存取、控制與行動能力。</p></div>
+            <div class="layers" aria-label="Capability stack">
+              <div class="layer"><b data-lang="en">Workflow</b><b data-lang="zh">工作流程</b><span>plan · act · verify</span></div>
+              <div class="layer"><b data-lang="en">Tools</b><b data-lang="zh">工具</b><span>APIs · actions</span></div>
+              <div class="layer"><b data-lang="en">Retrieval</b><b data-lang="zh">檢索</b><span>private · fresh knowledge</span></div>
+              <div class="layer"><b>Prompt</b><span>intent · examples</span></div>
+              <div class="layer"><b>Base LLM</b><span>frozen · stateless</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="chapters">
+          <div class="section-head"><div class="section-num">02</div><div><h2 data-lang="en">Chapter-by-chapter</h2><h2 data-lang="zh">逐章結構化摘要</h2><p class="section-intro" data-lang="en">Six chapters move from the limits of a raw model to a practical systems-building roadmap.</p><p class="section-intro" data-lang="zh">六個章節從基礎模型的限制，一路推進到可落地的系統建構路線。</p></div></div>
+          <div class="timeline">
+            <article class="chapter"><div class="time">0:00</div><div><h3 data-lang="en">The AI Builder’s learning dilemma</h3><h3 data-lang="zh">AI Builder 的學習困境</h3><p data-lang="en">Prompt tricks, fine-tuning, RAG, agents—a pile of disconnected buzzwords with no map. The thesis: learn which pain each technique relieves, not more tools.</p><p data-lang="zh">Prompt 技巧、Fine-tuning、RAG、Agent 像一堆彼此斷裂的術語。重點不是多學工具，而是理解每種技術解決哪一種痛點。</p></div></article>
+            <article class="chapter"><div class="time">0:50</div><div><h3 data-lang="en">Base LLM limits + vertical-axis thinking</h3><h3 data-lang="zh">LLM 限制與「縱軸思維」</h3><p data-lang="en">A raw model has a knowledge cutoff, no private-data access, and no durable state. Instead of only comparing bigger and smaller models, stack prompt, retrieval, tool, and workflow layers.</p><p data-lang="zh">原始模型有知識截止點、無法存取私有資料，也沒有持久狀態。不要只比較模型大小，而要疊加 Prompt、檢索、工具與流程層。</p></div></article>
+            <article class="chapter"><div class="time">3:30</div><div><h3 data-lang="en">Three tools that strengthen one LLM</h3><h3 data-lang="zh">強化單一 LLM 的三大工具</h3><div class="tool-grid">
+              <div class="tool"><b>Prompt engineering</b><p data-lang="en">Cheapest lever: instructions, roles, zero/few-shot, chain-of-thought, templates, and prompt chains. Evaluate with rubric, pairwise, or reference-guided judges over 100+ cases.</p><p data-lang="zh">成本最低：清楚指令、角色、zero/few-shot、CoT、模板與 prompt chaining。應用 rubric、成對比較或參考答案，對 100+ 測試案例做評估。</p></div>
+              <div class="tool"><b>Fine-tuning</b><p data-lang="en">Changes weights. Best for tone, format, and stable domain behavior—not fact injection. Risks include catastrophic forgetting, cost, and model-version staleness.</p><p data-lang="zh">改變權重，適合語氣、格式與穩定領域行為，不適合灌入知識。風險包括災難性遺忘、成本與版本過時。</p></div>
+              <div class="tool"><b>RAG</b><p data-lang="en">The default for missing knowledge: chunk, embed, index; then retrieve top-K and synthesize a grounded answer. Advanced moves include HyDE and reranking.</p><p data-lang="zh">面對缺失知識的預設解：切塊、向量化、索引，再取 top-K 內容生成有根據的答案；進階可用 HyDE 與 reranking。</p></div>
+            </div></div></article>
+            <article class="chapter"><div class="time">11:40</div><div><h3 data-lang="en">Agentic workflow system design</h3><h3 data-lang="zh">Agentic Workflow 系統設計</h3><p data-lang="en">The leap is from answering to doing. A refund workflow retrieves policy, asks for an order number, calls the order API, checks eligibility, and confirms the outcome. Components are prompts, context/memory, and tools. MCP standardizes tool interfaces; autonomy ranges from hard-coded steps to planning agents.</p><p data-lang="zh">關鍵是從「回答」跨到「執行」。退款流程會檢索政策、詢問訂單編號、呼叫 API、檢查資格並確認結果。核心元件是 Prompt、Context/Memory 與 Tools；MCP 統一工具介面，自主程度則從硬編碼流程延伸到可規劃的 Agent。</p></div></article>
+            <article class="chapter"><div class="time">17:30</div><div><h3 data-lang="en">Evaluation + customer-support agent build</h3><h3 data-lang="zh">評估系統與客服 Agent 實作</h3><p data-lang="en">Measure end-to-end and component-level performance; separate objective checks from subjective rubric judgments. Decompose support work with domain experts, classify each step as fuzzy (LLM) or deterministic (rules/tools), and preserve traces for debugging.</p><p data-lang="zh">同時衡量端到端與元件層表現，並區分客觀檢查與主觀 rubric。與領域專家拆解客服工作，把每一步分成模糊型（LLM）或確定型（規則／工具），並保留 trace 以便除錯。</p></div></article>
+            <article class="chapter"><div class="time">22:15</div><div><h3 data-lang="en">Multi-agent + learning roadmap</h3><h3 data-lang="zh">Multi-Agent 與學習路線</h3><p data-lang="en">Specialization and parallelism justify multi-agent systems; single-turn tasks do not. Start with primitives—prompting, evals, retrieval, tool use, orchestration—rather than chasing frameworks. Future frontiers: architecture search and multimodality.</p><p data-lang="zh">專業分工與平行處理可支持 Multi-Agent；單輪任務通常不需要。優先掌握 prompting、evals、retrieval、tool use、orchestration 等基本功，而非追逐框架。前沿方向是架構搜尋與多模態。</p></div></article>
+          </div>
+        </section>
+
+        <section id="decisions">
+          <div class="section-head"><div class="section-num">03</div><div><h2 data-lang="en">Choose by the pain</h2><h2 data-lang="zh">依問題選技術</h2><p class="section-intro" data-lang="en">The compact decision framework behind the whole lecture.</p><p class="section-intro" data-lang="zh">整堂課背後最精簡的技術決策框架。</p></div></div>
+          <div class="decision-grid">
+            <div class="decision"><span class="problem" data-lang="en">KNOWLEDGE PROBLEM</span><span class="problem" data-lang="zh">知識問題</span><strong><span class="arrow">→</span> RAG first</strong><p data-lang="en">Retrieve fresh or private facts; fine-tune last.</p><p data-lang="zh">先檢索新鮮或私有事實；最後才考慮 fine-tuning。</p></div>
+            <div class="decision"><span class="problem" data-lang="en">BEHAVIOR / FORMAT</span><span class="problem" data-lang="zh">行為／格式問題</span><strong><span class="arrow">→</span> Prompt first</strong><p data-lang="en">Clarify instructions and examples before changing weights.</p><p data-lang="zh">改權重前，先把指令與示例說清楚。</p></div>
+            <div class="decision"><span class="problem" data-lang="en">MULTI-STEP GOAL</span><span class="problem" data-lang="zh">多步驟目標</span><strong><span class="arrow">→</span> Agentic workflow</strong><p data-lang="en">Use no more autonomy than the task requires.</p><p data-lang="zh">不要使用超過任務所需的自主性。</p></div>
+            <div class="decision"><span class="problem" data-lang="en">SPECIALIZATION + PARALLELISM</span><span class="problem" data-lang="zh">專業化＋平行化</span><strong><span class="arrow">→</span> Multi-agent</strong><p data-lang="en">Only when decomposition creates real quality or speed gains.</p><p data-lang="zh">只有拆分確實能帶來品質或速度收益時才採用。</p></div>
+          </div>
+          <div class="principle"><strong data-lang="en">Always:</strong><strong data-lang="zh">永遠：</strong><span data-lang="en">Build evals before iterating, and keep the traces.</span><span data-lang="zh">迭代前先建立評估，並保留完整 traces。</span></div>
+        </section>
+
+        <section id="interview">
+          <div class="section-head"><div class="section-num">04</div><div><h2 data-lang="en">Interview practice</h2><h2 data-lang="zh">面試練習</h2><p class="section-intro" data-lang="en">Answer aloud first. Then reveal the model answer—or switch to drill mode and step through all 14.</p><p class="section-intro" data-lang="zh">先大聲回答，再展開參考答案；也可切換演練模式，逐題完成全部 14 題。</p></div></div>
+          <div class="qa-controls">
+            <div class="filters" role="group" aria-label="Filter questions">
+              <button class="filter active" data-filter="all"><span data-lang="en">All</span><span data-lang="zh">全部</span></button>
+              <button class="filter" data-filter="rag">RAG</button><button class="filter" data-filter="prompt">Prompt</button><button class="filter" data-filter="agent">Agents</button><button class="filter" data-filter="eval">Evals</button><button class="filter" data-filter="system"><span data-lang="en">System design</span><span data-lang="zh">系統設計</span></button>
+            </div>
+            <button class="drill-btn" id="startDrill"><span data-lang="en">Start drill mode →</span><span data-lang="zh">開始演練模式 →</span></button>
+          </div>
+          <div class="drill" id="drill" aria-live="polite">
+            <div class="drill-top"><span id="drillTopic"></span><span id="drillCount"></span></div>
+            <h3 id="drillQuestion"></h3><button class="reveal" id="revealDrill"><span data-lang="en">Reveal model answer</span><span data-lang="zh">顯示參考答案</span></button>
+            <div class="drill-answer" id="drillAnswer"></div>
+            <div class="drill-actions"><button id="prevQ"><span data-lang="en">← Previous</span><span data-lang="zh">← 上一題</span></button><button class="primary" id="nextQ"><span data-lang="en">Next question →</span><span data-lang="zh">下一題 →</span></button><button id="closeDrill"><span data-lang="en">Exit drill</span><span data-lang="zh">離開演練</span></button></div>
+          </div>
+          <div class="qa-list" id="qaList"></div>
+        </section>
+
+        <section id="takeaways">
+          <div class="section-head"><div class="section-num">05</div><div><h2 data-lang="en">What to retain</h2><h2 data-lang="zh">真正要帶走的觀念</h2></div></div>
+          <div class="takeaways">
+            <div class="takeaway"><b data-lang="en">System > model</b><b data-lang="zh">系統 > 模型</b><p data-lang="en">The model is one layer. Retrieval, tools, memory, workflow, and evaluation create usable capability.</p><p data-lang="zh">模型只是其中一層；檢索、工具、記憶、流程與評估共同構成可用能力。</p></div>
+            <div class="takeaway"><b data-lang="en">Trace the failure</b><b data-lang="zh">追蹤失敗位置</b><p data-lang="en">In probabilistic software, traces replace the comfort of a conventional step-through debugger.</p><p data-lang="zh">在機率式軟體裡，trace 取代了傳統逐步除錯器帶來的確定感。</p></div>
+            <div class="takeaway"><b data-lang="en">Match complexity to value</b><b data-lang="zh">複雜度要對應價值</b><p data-lang="en">Multi-agent is an architecture choice, not a maturity badge. Add it only for real specialization or parallelism.</p><p data-lang="zh">Multi-Agent 是架構選擇，不是成熟度勳章；只有真實的專業分工或平行需求才值得採用。</p></div>
+            <div class="takeaway"><b data-lang="en">Evals are the flywheel</b><b data-lang="zh">評估是成長飛輪</b><p data-lang="en">Every production failure should become a permanent test case, tightening the loop between reality and the golden set.</p><p data-lang="zh">每個 production failure 都應成為永久測試案例，縮短真實流量與 golden set 之間的差距。</p></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      <div><span data-lang="en">Source snapshot accessed October 2, 2026. Video published May 4, 2026.</span><span data-lang="zh">來源快照存取於 2026/10/2；影片發布於 2026/5/4。</span></div>
+      <div class="foot-links"><a href="https://www.youtube.com/watch?v=eKW9ITaltWw" target="_blank" rel="noopener noreferrer"><span data-lang="en">YouTube source ↗</span><span data-lang="zh">YouTube 來源 ↗</span></a></div>
+    </footer>
+  </div>
+<script>
+(function(){
+  var questions=[
+    {n:1,t:'rag',topic:'RAG',q:'Walk me through the RAG pipeline end to end.',qz:'請端到端說明 RAG pipeline。',a:'Two phases. Offline indexing: documents → chunking → embedding model → vector DB index. Online: embed the user query → cosine-similarity search for top-K chunks → inject chunks + query into the prompt → the LLM synthesizes a grounded, citable answer. Key engineering choices live in chunking strategy (size/overlap), embedding quality, K, and reranking.',az:'分兩階段。離線索引：文件 → 切塊 → embedding model → vector DB index。線上：把使用者查詢向量化 → 用 cosine similarity 找 top-K chunks → 將 chunks 與 query 注入 prompt → LLM 合成有根據、可引用的答案。關鍵工程選擇包括 chunk size／overlap、embedding 品質、K 值與 reranking。'},
+    {n:2,t:'rag',topic:'RAG',q:'When do you fine-tune vs. use RAG?',qz:'什麼時候該 fine-tune，什麼時候該用 RAG？',a:'RAG when the problem is knowledge: fresh, private, or large-scale facts you need cited without touching weights. Fine-tune when the problem is behavior: consistent tone, output format, or domain-specific judgment on stable data. Almost never fine-tune to inject facts — you get hallucinations, stale weights, and catastrophic forgetting.',az:'問題是知識時用 RAG：需要新鮮、私有或大規模且可引用的事實，又不想改權重。問題是行為時用 fine-tuning：穩定資料上的一致語氣、輸出格式或領域判斷。幾乎不要用 fine-tuning 灌入事實，否則會面臨幻覺、權重過時與災難性遺忘。'},
+    {n:3,t:'rag',topic:'Fine-tuning',q:'What is catastrophic forgetting?',qz:'什麼是 catastrophic forgetting？',a:"Fine-tuning updates the model's weights on narrow data, which can degrade its general reasoning, instruction-following, and logic. Mitigation: keep fine-tuning to style/format, use RAG for knowledge, and mix general data into training if you must tune.",az:'Fine-tuning 用窄領域資料更新模型權重，可能傷害一般推理、指令遵循與邏輯能力。緩解方法：把 fine-tuning 限定在風格／格式；知識改用 RAG；若必須調整，訓練資料中混入一般性資料。'},
+    {n:4,t:'prompt',topic:'Prompt engineering',q:'How do you evaluate prompts at scale instead of eyeballing?',qz:'如何大規模評估 prompt，而不是只靠目測？',a:'LLM-as-a-judge: an evaluator model grades outputs against explicit rubrics (1–5 scale), runs pairwise A/B comparisons, or scores against reference answers — over 100+ test cases, with a human-labeled subset for calibration. Watch judge biases: verbosity, position/order effects, self-preference.',az:'使用 LLM-as-a-judge：讓評估模型依明確 rubric（如 1–5 分）、成對 A/B 比較，或參考答案來評分；測試 100+ 案例，並用一小組人工標註資料校準。注意冗長偏誤、位置／順序效應與自我偏好。'},
+    {n:5,t:'prompt',topic:'Prompt engineering',q:'What is chain-of-thought prompting, and when does it help?',qz:'什麼是 chain-of-thought prompting？什麼時候有幫助？',a:'Instructing the model to reason step-by-step before answering. Helps multi-step reasoning and math-like tasks, makes failures inspectable. Costs: more tokens, more latency. Not a universal upgrade — for simple extraction it just burns budget.',az:'要求模型回答前逐步推理。它有助於多步驟推理與類數學任務，也讓失敗更可檢視。代價是更多 token 與延遲；它不是萬用升級，對簡單抽取任務只會浪費預算。'},
+    {n:6,t:'prompt',topic:'Prompt engineering',q:'Zero-shot vs. few-shot — how do you choose?',qz:'Zero-shot 與 few-shot 要怎麼選？',a:"Few-shot when examples disambiguate format, style, or edge cases the instruction alone can't pin down. Zero-shot when the model follows instructions well and context is precious. Every example costs tokens on every call, so few-shot is a latency/cost decision too.",az:'當範例能釐清僅靠指令無法固定的格式、風格或邊界案例時，用 few-shot；若模型指令遵循良好且 context 珍貴，則用 zero-shot。每個範例都會在每次呼叫消耗 token，所以 few-shot 也是延遲與成本決策。'},
+    {n:7,t:'prompt',topic:'Prompt engineering',q:'What is prompt chaining, and why bother?',qz:'什麼是 prompt chaining？為什麼值得做？',a:"Decompose one complex prompt into a sequence of simpler prompts. Each step's input/output is inspectable, so when something breaks you know which step broke — and you can eval and improve steps independently. Trade-off: added latency and error compounding across steps.",az:'把一個複雜 prompt 拆成一串簡單 prompts。每一步的輸入／輸出都可檢視，因此出錯時知道是哪一步，並能獨立評估與改善。代價是額外延遲，以及跨步驟的錯誤累積。'},
+    {n:8,t:'agent',topic:'Agentic workflows',q:'Name the four agentic design patterns.',qz:'請說出四種 agentic design patterns。',a:'1. Reflection — the agent critiques its own draft and revises. 2. Tool use — the agent formats inputs to call APIs, run code, search the web, query SQL. 3. Planning — decompose a goal into an ordered sub-task list/DAG. 4. Multi-agent collaboration — specialized agents coordinated hierarchically (orchestrator) or peer-to-peer (MCP).',az:'1. Reflection：Agent 批評並修改自己的草稿。2. Tool use：格式化輸入以呼叫 API、執行程式、搜尋網路、查詢 SQL。3. Planning：把目標拆成有序子任務清單／DAG。4. Multi-agent collaboration：由 orchestrator 分層協調，或透過 MCP 做點對點協作。'},
+    {n:9,t:'agent',topic:'Multi-agent',q:'When is multi-agent overkill?',qz:'什麼情況下 Multi-Agent 是過度設計？',a:'Single-turn, single-domain tasks. Spinning up an orchestrator with specialist agents multiplies latency and API cost with no quality gain over one agent with tools. Start minimal — single agent + tools — and add hierarchy only when subtasks are genuinely parallelizable or need deep specialization.',az:'單輪、單領域任務。啟動 orchestrator 與專家 agents 會放大延遲與 API 成本，卻不比單一 agent 加工具更好。先從最小架構開始，只在子任務真正可平行或需要深度專業化時再加層級。'},
+    {n:10,t:'eval',topic:'Evals',q:'How do you evaluate an AI agent?',qz:'如何評估 AI agent？',a:"Two axes: end-to-end (did the task actually succeed?) vs. component-level (retrieval quality, tool-call accuracy, reasoning), and objective (exact match, state change) vs. subjective (helpfulness, tone — via LLM judges with rubrics). Keep full traces; they're the only debugging surface. Add every production failure back into the eval set.",az:'兩條軸線：端到端（任務是否成功）對元件層（檢索品質、工具呼叫正確性、推理）；客觀（exact match、state change）對主觀（幫助性、語氣，由 LLM judge 依 rubric 評估）。保留完整 traces，並把每個 production failure 加回 eval set。'},
+    {n:11,t:'agent',topic:'Multi-agent / tools',q:"MCP vs. traditional APIs for agent tools — what's the difference?",qz:'Agent 工具中的 MCP 與傳統 API 有何不同？',a:'Traditional APIs need custom integration code per tool. MCP standardizes how tools advertise capabilities (schemas, discovery), so any MCP-compatible agent can use any MCP tool without bespoke glue — it’s what makes multi-agent and tool ecosystems composable.',az:'傳統 API 需要為每個工具撰寫客製整合程式。MCP 標準化工具如何揭露能力（schema、discovery），因此相容的 agent 能使用相容工具，不必每次重寫 glue code，讓 Multi-Agent 與工具生態可組合。'},
+    {n:12,t:'system',topic:'System design',q:'How would you design a customer-support agent?',qz:'你會如何設計客服 Agent？',a:'Start with the domain experts: decompose the job — extract key info from the message (LLM), look up the customer record (API tool), check the policy (RAG/rules), draft the response (LLM), send it (tool with guardrails/approval). Classify each step fuzzy vs. deterministic. Build component evals for each step plus end-to-end success, keep traces, and put a human approval gate on irreversible actions.',az:'先與領域專家拆解工作：從訊息抽取關鍵資訊（LLM）、查詢客戶紀錄（API tool）、檢查政策（RAG／rules）、撰寫回覆（LLM）、發送（具 guardrail／approval 的 tool）。把每步分成 fuzzy 或 deterministic，為每步建立 component eval 與端到端成功率，保留 traces，並在不可逆動作前設人工核准。'},
+    {n:13,t:'agent',topic:'Agentic workflows',q:'Why are LLM traces so important?',qz:'為什麼 LLM traces 如此重要？',a:"Because the system is probabilistic — you can't step through it with a debugger. Traces (prompts, retrieved chunks, tool calls, intermediate outputs) tell you where a failure happened: was it retrieval, reasoning, or the tool call? No traces, no root cause.",az:'因為系統是機率式的，無法像傳統程式逐步除錯。Traces（prompts、retrieved chunks、tool calls、intermediate outputs）能指出失敗發生在哪裡：檢索、推理，還是工具呼叫？沒有 traces，就沒有 root cause。'},
+    {n:14,t:'eval',topic:'Staff-level',q:'Your agent passes evals but degrades in production. Diagnose it.',qz:'你的 Agent 通過 evals，卻在 production 劣化。請診斷。',a:'Check for distribution shift between the golden set and real traffic; verify eval coverage of the failing cases and add them; inspect component-level metrics to isolate retrieval vs. reasoning vs. tools; check whether an upstream API, document corpus, or prompt changed; look at trace-level patterns (e.g., new user phrasings breaking extraction). Fix = close the loop: failing production cases become permanent eval cases.',az:'檢查 golden set 與真實流量是否有 distribution shift；確認 eval 是否涵蓋失敗案例並把它們加入；看 component-level metrics 以隔離 retrieval、reasoning、tools；檢查上游 API、文件 corpus 或 prompt 是否變更；從 trace pattern 找規律（例如新說法讓抽取失敗）。修正方式是閉環：把 production 失敗案例變成永久 eval cases。'}
+  ];
+  var currentLang='en', drillIndex=0;
+  var list=document.getElementById('qaList');
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function renderList(){list.innerHTML=questions.map(function(x){return '<article class="qa" data-topic="'+x.t+'"><button class="question" aria-expanded="false"><span class="qnum">Q'+x.n+'</span><span class="qtext">'+esc(currentLang==='zh'?x.qz:x.q)+'</span><span class="chev">+</span></button><div class="answer"><span class="topic">'+esc(x.topic)+'</span><p>'+esc(currentLang==='zh'?x.az:x.a)+'</p></div></article>'}).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.question'),function(btn){btn.addEventListener('click',function(){var card=btn.parentNode;var open=card.classList.toggle('open');btn.setAttribute('aria-expanded',String(open))})});
+    applyFilter(document.querySelector('.filter.active').getAttribute('data-filter'));
+  }
+  function applyFilter(f){Array.prototype.forEach.call(document.querySelectorAll('.qa'),function(q){q.classList.toggle('hidden',f!=='all'&&q.getAttribute('data-topic')!==f)})}
+  Array.prototype.forEach.call(document.querySelectorAll('.filter'),function(btn){btn.addEventListener('click',function(){document.querySelector('.filter.active').classList.remove('active');btn.classList.add('active');applyFilter(btn.getAttribute('data-filter'))})});
+  Array.prototype.forEach.call(document.querySelectorAll('.lang-btn'),function(btn){btn.addEventListener('click',function(){currentLang=btn.getAttribute('data-set-lang');document.body.classList.toggle('zh',currentLang==='zh');document.documentElement.lang=currentLang==='zh'?'zh-Hant':'en';document.querySelector('.lang-btn.active').classList.remove('active');btn.classList.add('active');renderList();updateDrill()})});
+  var drill=document.getElementById('drill'), drillAnswer=document.getElementById('drillAnswer');
+  function updateDrill(){var x=questions[drillIndex];document.getElementById('drillTopic').textContent=x.topic;document.getElementById('drillCount').textContent=(drillIndex+1)+' / '+questions.length;document.getElementById('drillQuestion').textContent='Q'+x.n+' · '+(currentLang==='zh'?x.qz:x.q);drillAnswer.textContent=currentLang==='zh'?x.az:x.a;drillAnswer.classList.remove('open');document.getElementById('prevQ').disabled=drillIndex===0;document.getElementById('nextQ').disabled=drillIndex===questions.length-1}
+  document.getElementById('startDrill').addEventListener('click',function(){drill.classList.add('open');list.style.display='none';updateDrill();drill.scrollIntoView({behavior:'smooth',block:'center'})});
+  document.getElementById('revealDrill').addEventListener('click',function(){drillAnswer.classList.toggle('open')});
+  document.getElementById('prevQ').addEventListener('click',function(){if(drillIndex>0){drillIndex--;updateDrill()}});
+  document.getElementById('nextQ').addEventListener('click',function(){if(drillIndex<questions.length-1){drillIndex++;updateDrill()}});
+  document.getElementById('closeDrill').addEventListener('click',function(){drill.classList.remove('open');list.style.display='grid'});
+  var links=document.querySelectorAll('.rail a'), sections=document.querySelectorAll('main section');
+  if('IntersectionObserver' in window){var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)})}})},{rootMargin:'-20% 0px -65% 0px'});sections.forEach(function(s){obs.observe(s)})}
+  renderList();
+})();
+</script>
+</body>
+</html>
