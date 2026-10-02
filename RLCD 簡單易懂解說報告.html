@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>RLCD 簡單易懂解說報告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper:#f4f0e9;
+      --surface:#fffdf8;
+      --surface-2:#ece6dc;
+      --ink:#14201d;
+      --muted:#59635f;
+      --line:#cfc8bb;
+      --teal:#075b54;
+      --teal-2:#0f756b;
+      --teal-soft:#dbeae4;
+      --amber:#bb5a16;
+      --amber-soft:#f6dfca;
+      --red:#a23a32;
+      --red-soft:#f3dcda;
+      --green:#37774f;
+      --green-soft:#dcebdd;
+      --shadow:0 16px 40px rgba(36,34,27,.09);
+      --radius-s:10px;
+      --radius-m:18px;
+      --radius-l:30px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper:#101615;
+        --surface:#18211f;
+        --surface-2:#222d2a;
+        --ink:#f2f1e9;
+        --muted:#b8c1bd;
+        --line:#3b4743;
+        --teal:#73cbbd;
+        --teal-2:#8bd7c9;
+        --teal-soft:#1d3934;
+        --amber:#f0a365;
+        --amber-soft:#3d2b1f;
+        --red:#ef8d84;
+        --red-soft:#3d2625;
+        --green:#8fc29e;
+        --green-soft:#263a2d;
+        --shadow:0 18px 48px rgba(0,0,0,.28);
+      }
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      background:var(--paper);
+      color:var(--ink);
+      font-family:"Noto Sans TC",sans-serif;
+      line-height:1.75;
+      text-rendering:optimizeLegibility;
+    }
+    a{color:inherit}
+    svg{display:block}
+    .wrap{width:min(1120px,calc(100% - 40px));margin-inline:auto}
+    .hero{padding:70px 0 28px}
+    .hero-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:48px;align-items:center}
+    .paper-meta{display:flex;gap:9px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:.84rem;font-weight:700;letter-spacing:.02em;margin-bottom:18px}
+    .paper-meta .tag{background:var(--teal);color:var(--surface);padding:5px 10px;border-radius:999px}
+    @media (prefers-color-scheme: dark){.paper-meta .tag{color:#10201d}}
+    h1,h2,h3{margin:0;line-height:1.15}
+    h1{font-family:"Noto Serif TC",serif;font-size:clamp(2.45rem,6vw,5.25rem);letter-spacing:-.045em;max-width:800px}
+    .hero .lead{font-size:clamp(1.08rem,1.5vw,1.3rem);color:var(--muted);max-width:720px;margin:24px 0 0}
+    .hero .lead strong{color:var(--ink)}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+    .button{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:12px;background:var(--teal);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem}
+    .button.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+    .button svg{width:17px;height:17px}
+    .decision-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);box-shadow:var(--shadow);padding:28px;position:relative;overflow:hidden}
+    .decision-card:after{content:"";position:absolute;right:-70px;top:-90px;width:180px;height:180px;border-radius:50%;border:32px solid var(--teal-soft);opacity:.65}
+    .decision-card h2{font-size:1.06rem;margin-bottom:20px;position:relative;z-index:1}
+    .decision-flow{position:relative;z-index:1;display:grid;gap:12px}
+    .flow-row{display:grid;grid-template-columns:58px 1fr;gap:14px;align-items:center}
+    .prob{font-weight:800;font-size:1.15rem;color:var(--teal)}
+    .track{background:var(--surface-2);height:10px;border-radius:99px;overflow:hidden;margin-bottom:7px}
+    .fill{height:100%;border-radius:99px;background:var(--teal)}
+    .fill.mid{background:var(--amber)}
+    .fill.low{background:var(--red)}
+    .route{font-size:.83rem;color:var(--muted)}
+    .route strong{color:var(--ink)}
+    .decision-note{margin:20px 0 0;padding-top:18px;border-top:1px solid var(--line);font-size:.88rem;color:var(--muted);position:relative;z-index:1}
+    .sticky-nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(14px);border-block:1px solid var(--line);margin-top:30px}
+    .nav-inner{display:flex;gap:6px;overflow-x:auto;padding:10px 0;scrollbar-width:none}
+    .nav-inner::-webkit-scrollbar{display:none}
+    .nav-inner a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:.84rem;font-weight:700;padding:7px 11px;border-radius:999px}
+    .nav-inner a:hover,.nav-inner a:focus-visible{background:var(--teal-soft);color:var(--teal);outline:none}
+    section{padding:78px 0;scroll-margin-top:68px}
+    section + section{border-top:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:180px 1fr;gap:26px;margin-bottom:34px;align-items:start}
+    .section-no{font-size:.78rem;font-weight:800;color:var(--teal);letter-spacing:.12em}
+    h2{font-family:"Noto Serif TC",serif;font-size:clamp(2rem,4vw,3.45rem);letter-spacing:-.03em}
+    .section-intro{margin:14px 0 0;color:var(--muted);font-size:1.04rem;max-width:760px}
+    .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .quick{background:var(--surface);border-top:4px solid var(--teal);padding:23px 22px;border-radius:4px 4px var(--radius-m) var(--radius-m);box-shadow:0 10px 24px rgba(36,34,27,.05)}
+    .quick:nth-child(2){border-color:var(--amber)}
+    .quick:nth-child(3){border-color:var(--green)}
+    .quick .label{font-size:.76rem;color:var(--muted);font-weight:800;margin-bottom:7px}
+    .quick h3{font-size:1.14rem;margin-bottom:8px}
+    .quick p{font-size:.92rem;color:var(--muted);margin:0}
+    .analogy{margin-top:22px;background:var(--ink);color:var(--paper);border-radius:var(--radius-m);padding:25px 28px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
+    @media (prefers-color-scheme:dark){.analogy{background:#e5e8e0;color:#17201e}}
+    .analogy-mark{font-family:"Noto Serif TC",serif;font-size:2.4rem;line-height:.9;color:var(--amber)}
+    .analogy p{margin:0;font-size:1.02rem}
+    .calibration-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .concept-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:26px}
+    .concept-card h3{font-size:1.16rem;display:flex;gap:10px;align-items:center;margin-bottom:9px}
+    .mini-icon{width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:var(--teal-soft);color:var(--teal)}
+    .mini-icon svg{width:17px;height:17px}
+    .concept-card p{margin:0;color:var(--muted);font-size:.94rem}
+    .concept-card.bad .mini-icon{background:var(--red-soft);color:var(--red)}
+    .coin-strip{margin-top:17px;display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+    .coin{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);background:var(--surface-2)}
+    .coin.hit{background:var(--teal);border-color:var(--teal)}
+    .coin.miss{background:var(--red-soft);border-color:var(--red)}
+    .coin-label{margin-top:10px!important;font-size:.8rem!important}
+    .formula-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,.72fr);gap:22px;align-items:start}
+    .formula-card{background:var(--teal);color:#fff;border-radius:var(--radius-l);padding:34px}
+    .formula-card .kicker{font-size:.78rem;font-weight:800;opacity:.75;margin-bottom:14px}
+    .formula{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.55rem,4vw,2.55rem);letter-spacing:.02em;line-height:1.3;overflow-wrap:anywhere}
+    .formula-legend{margin-top:20px;display:grid;gap:8px;font-size:.88rem;color:rgba(255,255,255,.82)}
+    .formula-legend b{color:#fff}
+    .steps{display:grid;gap:10px}
+    .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);padding:16px 18px;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start}
+    .step-num{width:28px;height:28px;border-radius:50%;background:var(--teal-soft);color:var(--teal);font-weight:800;font-size:.8rem;display:grid;place-items:center}
+    .step h3{font-size:.97rem;margin-bottom:3px}
+    .step p{margin:0;color:var(--muted);font-size:.87rem}
+    details.math-note{margin-top:18px;background:var(--surface-2);border-radius:var(--radius-s);padding:2px 18px}
+    details summary{cursor:pointer;padding:14px 0;font-weight:700;color:var(--teal)}
+    details p{margin:0 0 16px;color:var(--muted)}
+    .identity{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:32px;overflow:hidden}
+    .identity-eq{display:flex;align-items:stretch;gap:13px;justify-content:center;flex-wrap:wrap}
+    .term{min-width:190px;flex:1;background:var(--surface-2);padding:20px;border-radius:var(--radius-s);text-align:center}
+    .term.danger{background:var(--red-soft)}
+    .term .math{font-family:Georgia,serif;font-size:1.35rem;font-weight:700;margin-bottom:6px}
+    .term p{margin:0;color:var(--muted);font-size:.85rem}
+    .op{align-self:center;font-size:1.8rem;font-weight:300;color:var(--muted)}
+    .identity-caption{max-width:760px;margin:24px auto 0;text-align:center;color:var(--muted)}
+    .identity-caption strong{color:var(--red)}
+    .failure-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+    .failure{border:1px solid var(--line);padding:25px;border-radius:var(--radius-m);background:var(--surface)}
+    .failure .flag{display:inline-block;font-size:.72rem;font-weight:800;color:var(--red);background:var(--red-soft);padding:4px 8px;border-radius:6px;margin-bottom:12px}
+    .failure h3{font-size:1.15rem;margin-bottom:8px}
+    .failure p{margin:0;color:var(--muted);font-size:.92rem}
+    .failure .evidence{margin-top:15px;padding-top:13px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+    .pipeline{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:stretch}
+    .stage{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:30px;position:relative}
+    .stage:first-child{border-top:6px solid var(--teal)}
+    .stage:last-child{border-top:6px solid var(--amber)}
+    .stage-id{font-size:.76rem;font-weight:800;color:var(--muted);margin-bottom:10px}
+    .stage h3{font-family:"Noto Serif TC",serif;font-size:1.65rem;margin-bottom:11px}
+    .stage > p{color:var(--muted);margin:0}
+    .stage-list{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:10px}
+    .stage-list li{padding-left:20px;position:relative;font-size:.9rem}
+    .stage-list li:before{content:"";position:absolute;left:0;top:.7em;width:8px;height:8px;border-radius:50%;background:var(--teal)}
+    .stage:last-child .stage-list li:before{background:var(--amber)}
+    .arrow{align-self:center;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--teal)}
+    .arrow svg{width:20px;height:20px}
+    .recipe{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;color:var(--muted);font-weight:700;font-size:.93rem}
+    .recipe .chip{background:var(--surface-2);padding:7px 10px;border-radius:8px;color:var(--ink)}
+    .results-topline{background:var(--green-soft);border-radius:var(--radius-m);padding:23px 26px;margin-bottom:22px;display:flex;gap:18px;align-items:center}
+    .results-topline strong{font-family:"Noto Serif TC",serif;font-size:1.42rem;color:var(--green)}
+    .results-topline p{margin:0;color:var(--muted)}
+    .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+    .chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:24px}
+    .chart-card h3{font-size:1.1rem;margin-bottom:4px}
+    .chart-card .chart-sub{margin:0 0 18px;color:var(--muted);font-size:.83rem}
+    .chart{width:100%;min-height:280px}
+    .chart svg{width:100%;height:auto;overflow:visible}
+    .chart-note{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.84rem}
+    .metric-grid{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .metric{background:var(--surface-2);padding:18px;border-radius:var(--radius-s)}
+    .metric .value{font-family:"Noto Serif TC",serif;font-size:1.8rem;line-height:1;color:var(--teal)}
+    .metric .name{margin-top:8px;font-size:.8rem;font-weight:700}
+    .metric .explain{margin-top:4px;color:var(--muted);font-size:.76rem}
+    .fit-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .fit{padding:28px;border-radius:var(--radius-m);background:var(--surface);border:1px solid var(--line)}
+    .fit.yes{border-top:6px solid var(--green)}
+    .fit.no{border-top:6px solid var(--amber)}
+    .fit h3{font-size:1.22rem;margin-bottom:13px}
+    .fit ul{margin:0;padding-left:1.2em;color:var(--muted)}
+    .fit li+li{margin-top:9px}
+    .callout{margin-top:18px;background:var(--amber-soft);border-radius:var(--radius-s);padding:18px 20px;color:var(--muted);font-size:.92rem}
+    .callout strong{color:var(--ink)}
+    .limits{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .limit{padding:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m)}
+    .limit .n{font-family:"Noto Serif TC",serif;font-size:2rem;color:var(--amber);line-height:1}
+    .limit h3{font-size:1rem;margin:11px 0 6px}
+    .limit p{margin:0;color:var(--muted);font-size:.86rem}
+    .takeaway{margin-top:24px;border:2px solid var(--teal);border-radius:var(--radius-l);padding:34px;text-align:center}
+    .takeaway .small{font-size:.76rem;font-weight:800;color:var(--teal);letter-spacing:.12em;margin-bottom:10px}
+    .takeaway blockquote{font-family:"Noto Serif TC",serif;font-size:clamp(1.45rem,3vw,2.35rem);line-height:1.45;margin:0 auto;max-width:850px}
+    .glossary{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden}
+    .word{background:var(--surface);padding:20px}
+    .word dt{font-weight:800;color:var(--teal)}
+    .word dd{margin:5px 0 0;color:var(--muted);font-size:.9rem}
+    .sources{display:grid;gap:12px;margin-top:26px}
+    .source{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:17px 19px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);text-decoration:none}
+    .source:hover{border-color:var(--teal)}
+    .source .type{font-size:.74rem;color:var(--muted);font-weight:800}
+    .source strong{display:block;margin-top:2px}
+    .source svg{width:19px;height:19px;color:var(--teal);flex:0 0 auto}
+    .method-note{margin-top:18px;color:var(--muted);font-size:.82rem}
+    footer{padding:30px 0 60px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--line)}
+    @media (max-width:820px){
+      .hero{padding-top:44px}
+      .hero-grid,.formula-layout{grid-template-columns:1fr}
+      .hero-grid{gap:30px}
+      .section-head{grid-template-columns:1fr;gap:8px}
+      .quick-grid,.limits{grid-template-columns:1fr}
+      .pipeline{grid-template-columns:1fr}
+      .arrow{transform:rotate(90deg);justify-self:center}
+      .chart-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:620px){
+      .wrap{width:min(100% - 24px,1120px)}
+      h1{font-size:2.55rem}
+      .hero{padding-top:34px}
+      .decision-card,.stage,.formula-card,.identity{padding:22px}
+      section{padding:56px 0}
+      .calibration-grid,.failure-grid,.fit-grid,.glossary{grid-template-columns:1fr}
+      .analogy{grid-template-columns:1fr;gap:8px}
+      .metric-grid{grid-template-columns:1fr 1fr}
+      .metric:last-child{grid-column:1/-1}
+      .results-topline{align-items:flex-start;flex-direction:column;gap:6px}
+      .identity-eq{display:grid;grid-template-columns:1fr}
+      .op{text-align:center}
+      .source{align-items:flex-start}
+      .nav-inner{flex-wrap:wrap;overflow-x:visible;gap:3px;padding-block:8px}
+      .nav-inner a{font-size:.78rem;padding:5px 8px}
+    }
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    @media print{
+      .sticky-nav,.hero-actions{display:none}
+      body{background:#fff;color:#111}
+      section{break-inside:avoid}
+      .decision-card,.concept-card,.chart-card,.stage{box-shadow:none}
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="paper-meta">
+          <span class="tag">論文解說</span>
+          <span>OpenJev-RLCD</span><span>·</span><span>Gao &amp; Wang</span><span>·</span><span>2026</span>
+        </div>
+        <h1>讓模型知道：<br>自己什麼時候不可靠</h1>
+        <p class="lead">RLCD 不只想讓 AI 答對；它要讓 AI 報出的<strong>「我有 90% 把握」真的等於長期 90% 答對</strong>。這樣，信心才可以拿來決定：自動執行，還是交給人類。</p>
+        <div class="hero-actions">
+          <a class="button" href="#quick">30 秒看懂
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+          </a>
+          <a class="button secondary" href="https://arxiv.org/html/2609.38850v1" target="_blank" rel="noopener noreferrer">閱讀原論文
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 5h5v5M10 14 19 5M19 14v5H5V5h5"/></svg>
+          </a>
+        </div>
+      </div>
+      <aside class="decision-card" aria-label="校準信心如何支援決策的示意圖">
+        <h2>可信的信心 → 可委派的決策</h2>
+        <div class="decision-flow">
+          <div class="flow-row"><div class="prob">95%</div><div><div class="track"><div class="fill" style="width:95%"></div></div><div class="route"><strong>自動執行</strong> · 高信心區</div></div></div>
+          <div class="flow-row"><div class="prob">62%</div><div><div class="track"><div class="fill mid" style="width:62%"></div></div><div class="route"><strong>多查一步</strong> · 補充證據</div></div></div>
+          <div class="flow-row"><div class="prob">28%</div><div><div class="track"><div class="fill low" style="width:28%"></div></div><div class="route"><strong>交給人類</strong> · 低信心區</div></div></div>
+        </div>
+        <p class="decision-note">示意：門檻依應用風險設定。重點不是固定用哪個百分比，而是這些百分比必須可信。</p>
+      </aside>
+    </div>
+  </header>
+
+  <nav class="sticky-nav" aria-label="章節導覽">
+    <div class="wrap nav-inner">
+      <a href="#quick">一句話</a><a href="#problem">為什麼需要</a><a href="#mechanism">怎麼打分</a><a href="#trap">關鍵陷阱</a><a href="#training">兩階段訓練</a><a href="#results">實驗結果</a><a href="#fit">何時適用</a><a href="#limits">限制</a><a href="#sources">來源</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="quick">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">00 · 先抓主旨</div><div><h2>30 秒看懂 RLCD</h2><p class="section-intro">把它想成「訓練 AI 誠實報信心」：每一次推理，都要為最後報出的機率負責。</p></div></div>
+        <div class="quick-grid">
+          <article class="quick"><div class="label">它解決什麼</div><h3>準確，不代表可信</h3><p>兩個模型都可能有 92% 準確率；真正有用的是，哪一個知道自己那 8% 可能錯在哪裡。</p></article>
+          <article class="quick"><div class="label">它怎麼做</div><h3>用 proper score 獎勵誠實</h3><p>不只看答對或答錯；直接讀出答案機率分佈，用 Brier score 評分每段推理。</p></article>
+          <article class="quick"><div class="label">它帶來什麼</div><h3>可以安全地委派</h3><p>高信心決策自動處理，低信心決策升級給人類；同樣準確率，覆蓋率可以高很多。</p></article>
+        </div>
+        <div class="analogy"><div class="analogy-mark">“</div><p><strong>考試比喻：</strong>一般 RL 只看學生選對沒有；RLCD 還要求學生填「我有幾成把握」。亂填 100% 的學生，答錯時會被重罰；長期下來，最好的策略就是誠實。</p></div>
+      </div>
+    </section>
+
+    <section id="problem">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">01 · 問題</div><div><h2>「答得準」與「知道自己多準」是兩件事</h2><p class="section-intro">校準（calibration）是把信心和真實命中率對齊。模型說 90% 的那些題目，長期應約有 90% 答對。</p></div></div>
+        <div class="calibration-grid">
+          <article class="concept-card">
+            <h3><span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg></span>已校準：90% 就真的約 9/10</h3>
+            <p>信心可以成為可靠的路由訊號：自動化哪些案子、哪些要人工覆核。</p>
+            <div class="coin-strip" aria-label="十個案例中九個答對"><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin miss"></span></div>
+            <p class="coin-label">示意：10 個自稱 90% 有把握的案例中，約 9 個正確</p>
+          </article>
+          <article class="concept-card bad">
+            <h3><span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v5M12 17h.01"/><path d="M10.3 3.4 2.6 17a2 2 0 0 0 1.8 3h15.2a2 2 0 0 0 1.8-3L13.7 3.4a2 2 0 0 0-3.4 0Z"/></svg></span>過度自信：90% 卻只中 6/10</h3>
+            <p>這時信心會誤導自動化系統：模型越有把握，反而可能把錯誤更快推進流程。</p>
+            <div class="coin-strip" aria-label="十個案例中六個答對"><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin hit"></span><span class="coin miss"></span><span class="coin miss"></span><span class="coin miss"></span><span class="coin miss"></span></div>
+            <p class="coin-label">示意：模型聲稱 90%，實際只有 60% 正確</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="mechanism">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">02 · 核心機制</div><div><h2>不抽一個答案；直接讀「答案機率分佈」</h2><p class="section-intro">模型先產生一段 rationale（推理），到 <code>Answer:</code> 為止；接著直接讀下一個選項 token 的分佈，這就是它對答案的承諾。</p></div></div>
+        <div class="formula-layout">
+          <article class="formula-card">
+            <div class="kicker">BRIER PROPER SCORE</div>
+            <div class="formula">J(u, y) = 2u<sub>y</sub> − ‖u‖²</div>
+            <div class="formula-legend"><span><b>u</b>：模型對各答案選項分配的機率</span><span><b>u<sub>y</sub></b>：分給正確答案的機率</span><span><b>‖u‖²</b>：懲罰過度集中、但押錯的機率分佈</span></div>
+          </article>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div><h3>先推理</h3><p>on-policy 產生 rationale，不預先指定固定思路。</p></div></div>
+            <div class="step"><div class="step-num">2</div><div><h3>讀出機率</h3><p>在 Answer token 位置，讀取選項 token 的 next-token distribution。</p></div></div>
+            <div class="step"><div class="step-num">3</div><div><h3>逐段負責</h3><p>每一段 rationale 都用自己的分佈 u 接受 proper score。</p></div></div>
+          </div>
+        </div>
+        <details class="math-note"><summary>為什麼叫 strictly proper scoring rule？</summary><p>因為當真實答案分佈是 q 時，期望分數只有在模型誠實回報 u = q 時達到唯一最大值。換句話說，長期來看，假裝更有把握或故意保守都拿不到更高分。</p></details>
+      </div>
+    </section>
+
+    <section id="trap">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">03 · 關鍵洞察</div><div><h2>先混合再打分，會偷偷獎勵「分歧」</h2><p class="section-intro">論文用一個變異數恆等式指出：若先把多段推理的答案分佈平均，再對這個 mixture 評分，會多出一個不該有的多樣性獎金。</p></div></div>
+        <div class="identity">
+          <div class="identity-eq">
+            <div class="term"><div class="math">J(平均分佈)</div><p>先混合，再打分</p></div><div class="op">=</div>
+            <div class="term"><div class="math">平均 J(個別分佈)</div><p>每段推理本來該拿的分數</p></div><div class="op">+</div>
+            <div class="term danger"><div class="math">變異數</div><p>推理彼此越分歧，獎金越高</p></div>
+          </div>
+          <p class="identity-caption">問題在最後一項：<strong>分歧不必有根據</strong>。模型可以靠隨機亂猜製造差異，拿到「分歧獎金」，卻沒有提升推理品質。解法是 per-rationale objective（λ = 0）：每段推理只為自己的分佈負責。</p>
+        </div>
+        <div class="failure-grid">
+          <article class="failure"><span class="flag">失敗模式 1</span><h3>System-One collapse：乾脆不推理</h3><p>Brier score 會重罰自信但答錯的案例。模型可能學到「空推理＋保守估計」比「認真推理＋偶爾犯錯」更安全。</p><div class="evidence">論文觀察：約 100 步內，rationale 全部退化為空標記。解法：加入 KL anchor，β = 0.04。</div></article>
+          <article class="failure"><span class="flag">失敗模式 2</span><h3>Policy gradient 把好訊號淹沒</h3><p>低變異、直接作用在 readout 的 pathwise gradient，會被高變異的 score-function gradient 壓過去。</p><div class="evidence">論文量測：score-function 梯度範數是 pathwise 的 7–12 倍。解法：不要一開始同時學，拆成兩階段。</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="training">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">04 · 解法</div><div><h2>先校準，再強化</h2><p class="section-intro">論文的核心工程判斷不是換一個 reward，而是先讓 reward 變得有資訊，再用它教推理。</p></div></div>
+        <div class="pipeline">
+          <article class="stage"><div class="stage-id">STAGE 1</div><h3>校準決策 readout</h3><p>照常採樣推理，但先不強化推理路徑；只用 pathwise gradient 教模型誠實報機率。</p><ul class="stage-list"><li>rationale：on-policy 採樣</li><li>更新：只訓練答案分佈 readout</li><li>目的：讓 proper score 變成可信訊號</li></ul></article>
+          <div class="arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <article class="stage"><div class="stage-id">STAGE 2</div><h3>強化推理 policy</h3><p>從已校準的 Stage 1 模型出發，用同一個 proper score 作為 RL reward，讓推理變得更有用。</p><ul class="stage-list"><li>演算法：REINFORCE + leave-one-out baseline</li><li>policy reward 權重：c = 0.3</li><li>KL anchor：鎖住 Stage 1 的校準成果</li></ul></article>
+        </div>
+        <div class="recipe"><span class="chip">先把「量尺」校準</span><span>→</span><span class="chip">再用量尺訓練推理</span><span>→</span><span class="chip">持續用 KL 保護成果</span></div>
+      </div>
+    </section>
+
+    <section id="results">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">05 · 實驗</div><div><h2>同樣準確，RLCD 更知道哪些答案可以信</h2><p class="section-intro">實驗使用 Qwen3-1.7B、3 個 seeds 與 paired tests。下圖比較的是論文報告值；不同任務的 coverage 門檻不同，不宜直接跨圖比較。</p></div></div>
+        <div class="results-topline"><strong>最關鍵的結果</strong><p>在 GSM8K-Verify，RLCD 與 GRPO 準確率幾乎相同，但在錯誤率 ≤ 5% 的條件下，可自動處理的覆蓋率是 81% 對 19%。</p></div>
+        <div class="chart-grid">
+          <article class="chart-card"><h3>GSM8K-Verify</h3><p class="chart-sub">推理驗證任務 · 百分比 · bar baseline = 0</p><div class="chart" data-chart="gsm" aria-label="RLCD 和 GRPO 在 GSM8K-Verify 的準確率與覆蓋率比較圖"></div><p class="chart-note">Cov@5%：只選擇模型最有把握的案例，要求這批案例的錯誤率不超過 5%，可以覆蓋多少資料。</p></article>
+          <article class="chart-card"><h3>MMLU-Pro</h3><p class="chart-sub">知識型任務 · 百分比 · bar baseline = 0</p><div class="chart" data-chart="mmlu" aria-label="RLCD 與其他方法在 MMLU-Pro 的準確率比較圖"></div><p class="chart-note">MMLU-Pro 上，RLCD 的 Cov@20% = 27.6%；論文報告所有推理 baseline 都是 0%。</p></article>
+        </div>
+        <div class="metric-grid">
+          <article class="metric"><div class="value">1.4</div><div class="name">RLCD 擬合溫度 T</div><div class="explain">接近 1，代表原始信心已較接近校準</div></article>
+          <article class="metric"><div class="value">≈7</div><div class="name">GRPO / RFT 的 T</div><div class="explain">需要大幅降溫，顯示原模型嚴重過度自信</div></article>
+          <article class="metric"><div class="value">3.8</div><div class="name">改用 correctness reward 後</div><div class="explain">T 從 1.4 升至 3.8，校準被重新吹脹</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="fit">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">06 · 使用判斷</div><div><h2>RL 只有在「推理能改變答案」時才值得</h2><p class="section-intro">RLCD 不是所有不確定性問題的萬靈丹。先問：這份不確定性，能不能透過更好的推理消除？</p></div></div>
+        <div class="fit-grid">
+          <article class="fit yes"><h3>適合 RLCD</h3><ul><li>答案需要多步推理、驗證或整合證據</li><li>模型的信心要拿來做自動化路由</li><li>既要準確，也要讓「不確定」本身可信</li><li>例如：判斷解題答案是否正確、複雜知識推理</li></ul></article>
+          <article class="fit no"><h3>不一定適合</h3><ul><li>不確定性來自資料本身的歧義</li><li>不同標註者本來就可能合理地不同意</li><li>再多推理也無法找出唯一答案</li><li>例如：ChaosNLI 的 aleatoric uncertainty</li></ul></article>
+        </div>
+        <div class="callout"><strong>ChaosNLI 的結果：</strong>per-rationale 目標正確發現「推理沒幫助」，因此自行關掉推理；任何 RL 都沒贏過 cross-entropy。這類任務應使用更快的直接打分器。</div>
+      </div>
+    </section>
+
+    <section id="limits">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">07 · 邊界</div><div><h2>這是有力的第一步，不是最終定論</h2><p class="section-intro">論文證明一個公開、可工作的實作，但證據範圍仍小；實際部署前要在自己的模型、任務和風險條件下重跑。</p></div></div>
+        <div class="limits">
+          <article class="limit"><div class="n">1.7B</div><h3>只驗證一個小型模型尺度</h3><p>更大的模型可能改變兩階段訓練中梯度與校準的平衡。</p></article>
+          <article class="limit"><div class="n">400–800</div><h3>訓練步數仍短</h3><p>長訓練是否維持校準、是否出現新退化，仍需更長程實驗。</p></article>
+          <article class="limit"><div class="n">3</div><h3>只有三個 seeds</h3><p>論文使用 paired tests，但更廣泛的模型與資料集驗證仍是開放問題。</p></article>
+        </div>
+        <div class="takeaway"><div class="small">一句話帶走</div><blockquote>RLCD 的回報不是只多幾分準確率，而是讓模型在相同準確率下，知道該信任自己的哪些答案。</blockquote></div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="wrap">
+        <div class="section-head"><div class="section-no">08 · 名詞與來源</div><div><h2>快速查詞，繼續深挖</h2><p class="section-intro">這份報告以論文 v1 與作者公開實作為主，不把論文之外的推測包裝成結論。</p></div></div>
+        <dl class="glossary">
+          <div class="word"><dt>Calibration · 校準</dt><dd>信心值與長期真實命中率一致。</dd></div>
+          <div class="word"><dt>Rationale · 推理過程</dt><dd>模型在回答前產生的中間推理文字。</dd></div>
+          <div class="word"><dt>Proper scoring rule</dt><dd>誠實回報真實機率分佈時，期望分數最高的評分規則。</dd></div>
+          <div class="word"><dt>Pathwise gradient</dt><dd>直接從答案分佈的可微 readout 傳回的梯度。</dd></div>
+          <div class="word"><dt>Score-function gradient</dt><dd>用採樣回報更新 policy 的梯度估計，通常變異較高。</dd></div>
+          <div class="word"><dt>Cov@ε</dt><dd>在選中案例錯誤率不超過 ε 時，模型能自動處理的資料比例。</dd></div>
+        </dl>
+        <div class="sources">
+          <a class="source" href="https://arxiv.org/html/2609.38850v1" target="_blank" rel="noopener noreferrer"><div><span class="type">PRIMARY SOURCE · ARXIV</span><strong>OpenJev-RLCD: A Working RLCD Implementation</strong></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 5h5v5M10 14 19 5M19 14v5H5V5h5"/></svg></a>
+          <a class="source" href="https://github.com/ZimmyGao/openjev-rlcd" target="_blank" rel="noopener noreferrer"><div><span class="type">PUBLIC IMPLEMENTATION · GITHUB</span><strong>OpenJev-RLCD source code</strong></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 5h5v5M10 14 19 5M19 14v5H5V5h5"/></svg></a>
+        </div>
+        <p class="method-note">資料口徑：論文 v1；結果值依論文報告整理。與 Jev 的比較僅限行為層面，因 Jev 的訓練演算法未公開。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap">研究解說 · 最後更新 2026-10-02 · 數據固定於論文 v1</div></footer>
+
+  <script>
+    (function(){
+      var charts = {
+        gsm: {
+          max: 100,
+          ticks: [0,25,50,75,100],
+          groups: [
+            { label: "準確率", values: [{name:"RLCD", value:92.2},{name:"GRPO", value:91.8}] },
+            { label: "Cov@5%", values: [{name:"RLCD", value:81.0},{name:"GRPO", value:19.0}] }
+          ]
+        },
+        mmlu: {
+          max: 60,
+          ticks: [0,20,40,60],
+          groups: [
+            { label: "準確率", values: [{name:"RLCD", value:47.7},{name:"SFT+TS", value:42.3},{name:"GRPO+TS", value:42.4}] },
+            { label: "Cov@20%", values: [{name:"RLCD", value:27.6},{name:"推理 baselines", value:0.0}] }
+          ]
+        }
+      };
+      var NS="http://www.w3.org/2000/svg";
+      function el(name, attrs, text){
+        var node=document.createElementNS(NS,name);
+        Object.keys(attrs||{}).forEach(function(k){node.setAttribute(k,attrs[k]);});
+        if(text!==undefined) node.textContent=text;
+        return node;
+      }
+      function cssVar(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+      function render(host, data){
+        var W=520,H=310,left=46,right=15,top=38,bottom=54,plotW=W-left-right,plotH=H-top-bottom;
+        var svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img"});
+        var title=el("title",{},host.getAttribute("aria-label"));svg.appendChild(title);
+        var ink=cssVar("--ink"),muted=cssVar("--muted"),line=cssVar("--line"),teal=cssVar("--teal"),amber=cssVar("--amber"),surface2=cssVar("--surface-2");
+        data.ticks.forEach(function(t){
+          var y=top+plotH-(t/data.max)*plotH;
+          svg.appendChild(el("line",{x1:left,y1:y,x2:W-right,y2:y,stroke:line,"stroke-width":"1"}));
+          svg.appendChild(el("text",{x:left-8,y:y+4,"text-anchor":"end",fill:muted,"font-size":"11","font-family":"Noto Sans TC, sans-serif"},t+"%"));
+        });
+        var groupW=plotW/data.groups.length;
+        data.groups.forEach(function(group,gi){
+          var count=group.values.length,gap=8,barsArea=Math.min(groupW-26,170),barW=(barsArea-gap*(count-1))/count;
+          var start=left+gi*groupW+(groupW-barsArea)/2;
+          group.values.forEach(function(d,i){
+            var h=(d.value/data.max)*plotH,y=top+plotH-h,x=start+i*(barW+gap);
+            svg.appendChild(el("rect",{x:x,y:y,width:barW,height:h,rx:"5",fill:d.name==="RLCD"?teal:(i===1?amber:surface2),stroke:d.name==="RLCD"?teal:line,"stroke-width":"1"}));
+            svg.appendChild(el("text",{x:x+barW/2,y:Math.max(top+11,y-7),"text-anchor":"middle",fill:ink,"font-size":"12","font-weight":"800","font-family":"Noto Sans TC, sans-serif"},d.value.toFixed(d.value%1===0?0:1)+"%"));
+            var label=el("text",{x:x+barW/2,y:top+plotH+18,"text-anchor":"middle",fill:muted,"font-size":count>2?"9":"10","font-family":"Noto Sans TC, sans-serif"},d.name);
+            svg.appendChild(label);
+          });
+          svg.appendChild(el("text",{x:left+gi*groupW+groupW/2,y:H-8,"text-anchor":"middle",fill:ink,"font-size":"12","font-weight":"700","font-family":"Noto Sans TC, sans-serif"},group.label));
+        });
+        host.replaceChildren(svg);
+      }
+      function renderAll(){document.querySelectorAll("[data-chart]").forEach(function(host){render(host,charts[host.getAttribute("data-chart")]);});}
+      renderAll();
+      var mq=window.matchMedia("(prefers-color-scheme: dark)");
+      if(mq.addEventListener) mq.addEventListener("change",renderAll);
+    })();
+  </script>
+<!-- MUSESPARK-NAV:START -->
+<style>
+body { padding-bottom: 90px !important; }
+#musespark-report-nav { all: initial; position: fixed; bottom: 16px; right: 16px; left: auto; z-index: 2147483647; display: flex; align-items: center; gap: 4px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 7px; border: 1px solid #cfd5c7; border-radius: 10px; background: #f6f5f0; box-shadow: 0 4px 20px #0002; }
+#musespark-report-nav a, #musespark-report-nav span { all: initial; box-sizing: border-box; display: block; padding: 10px 9px; color: #243c32; font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; white-space: nowrap; }
+#musespark-report-nav a { cursor: pointer; border-radius: 5px; }
+#musespark-report-nav a:hover { background: #e5ebdc; }
+#musespark-report-nav a:focus-visible { outline: 2px solid #526d37; outline-offset: -2px; }
+#musespark-report-nav span { color: #616b62; font-size: 11px; }
+@media (max-width: 380px) { #musespark-report-nav { right: 8px; bottom: 8px; max-width: calc(100vw - 16px); gap: 0; } #musespark-report-nav a, #musespark-report-nav span { padding: 10px 6px; } }
+@media print { #musespark-report-nav { display: none; } body { padding-bottom: 0 !important; } }
+</style>
+<nav id="musespark-report-nav" aria-label="Research library"><a href="index.html" aria-label="Return to the report catalog">← All reports</a><a href="TaiwanTechSummit2026.html" aria-label="Previous report">← Previous</a><span>9 / 9</span></nav>
+<!-- MUSESPARK-NAV:END -->
+</body>
+</html>

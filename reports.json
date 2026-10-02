@@ -46,5 +46,11 @@
     "description": "四場 Session 的共同主線：Physical AI、AI Memory、World Model 與有邊界的自主行動。",
     "topic": "Industry insights",
     "language": "繁體中文"
+  },
+  "RLCD 簡單易懂解說報告.html": {
+    "title": "RLCD 簡單易懂解說報告",
+    "description": "以淺顯方式解說模型信心校準、答案機率分佈與強化學習，理解模型何時值得信任。",
+    "topic": "AI systems",
+    "language": "繁體中文"
   }
 }
