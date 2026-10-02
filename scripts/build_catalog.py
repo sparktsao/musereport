@@ -1,12 +1,49 @@
 #!/usr/bin/env python3
 """Generate a portable static catalog; no third-party dependencies required."""
 import json
+import re
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
+NAV_START = "<!-- MUSESPARK-NAV:START -->"
+NAV_END = "<!-- MUSESPARK-NAV:END -->"
+
+
+def add_report_navigation(paths):
+    """Refresh navigation once per report, including reports added in future."""
+    for index, path in enumerate(paths):
+        source = path.read_text(encoding="utf-8")
+        source = re.sub(r"\n?" + re.escape(NAV_START) + r".*?" + re.escape(NAV_END), "", source, flags=re.S)
+        links = ['<a href="index.html" aria-label="Return to the report catalog">← All reports</a>']
+        if index > 0:
+            links.append(f'<a href="{quote(paths[index - 1].name, safe="")}" aria-label="Previous report">← Previous</a>')
+        links.append(f'<span>{index + 1} / {len(paths)}</span>')
+        if index + 1 < len(paths):
+            links.append(f'<a href="{quote(paths[index + 1].name, safe="")}" aria-label="Next report">Next →</a>')
+        block = f'''{NAV_START}
+<style>
+body {{ padding-bottom: 90px !important; }}
+#musespark-report-nav {{ all: initial; position: fixed; bottom: 16px; right: 16px; left: auto; z-index: 2147483647; display: flex; align-items: center; gap: 4px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 7px; border: 1px solid #cfd5c7; border-radius: 10px; background: #f6f5f0; box-shadow: 0 4px 20px #0002; }}
+#musespark-report-nav a, #musespark-report-nav span {{ all: initial; box-sizing: border-box; display: block; padding: 10px 9px; color: #243c32; font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; white-space: nowrap; }}
+#musespark-report-nav a {{ cursor: pointer; border-radius: 5px; }}
+#musespark-report-nav a:hover {{ background: #e5ebdc; }}
+#musespark-report-nav a:focus-visible {{ outline: 2px solid #526d37; outline-offset: -2px; }}
+#musespark-report-nav span {{ color: #616b62; font-size: 11px; }}
+@media (max-width: 380px) {{ #musespark-report-nav {{ right: 8px; bottom: 8px; max-width: calc(100vw - 16px); gap: 0; }} #musespark-report-nav a, #musespark-report-nav span {{ padding: 10px 6px; }} }}
+@media print {{ #musespark-report-nav {{ display: none; }} body {{ padding-bottom: 0 !important; }} }}
+</style>
+<nav id="musespark-report-nav" aria-label="Research library">{"".join(links)}</nav>
+{NAV_END}'''
+        closing = list(re.finditer(r"</body\s*>", source, flags=re.I))
+        if closing:
+            position = closing[-1].start()
+            source = source[:position] + block + "\n" + source[position:]
+        else:
+            source += "\n" + block + "\n"
+        path.write_text(source, encoding="utf-8")
 
 
 class TitleParser(HTMLParser):
@@ -58,6 +95,7 @@ def main():
     for token, value in {"{{CARDS}}": "\n".join(cards), "{{COUNT}}": str(len(paths)), "{{TOPICS}}": topic_options}.items():
         template = template.replace(token, value)
     (ROOT / "index.html").write_text(template, encoding="utf-8")
+    add_report_navigation(paths)
     print(f"Built index.html with {len(paths)} reports.")
 
 

@@ -2,6 +2,10 @@
 
 A searchable catalog of HTML research reports on AI systems, agent engineering, evaluation, and industry insights. English and Traditional Chinese reports are included.
 
+Every report includes a floating **All reports / Previous / Next** navigation bar. Readers can open the full HTML report, use its interactive content and section links, and move through the library without returning to GitHub's source-code view. Navigation works without JavaScript and updates automatically as reports are added.
+
+Use the published `https://YOUR_USERNAME.github.io/MuseSparkReport/` address to browse the rendered website. The `github.com` repository displays source files rather than the live HTML website.
+
 ## Preview locally
 
 Open `index.html` directly in your browser, or serve this folder:
@@ -37,7 +41,7 @@ Alternatively, select **Deploy from a branch**, choose your default branch and *
 3. Run `python3 scripts/build_catalog.py` to refresh the local catalog.
 4. Commit and push your changes. The GitHub Actions workflow regenerates the published catalog automatically, so new reports are included even without metadata.
 
-Reports without metadata use their HTML title, the topic `Research`, and an unspecified language. Catalog links are URL-encoded and relative, so spaces, punctuation, and GitHub Pages repository subpaths work correctly. Existing report content is preserved.
+Reports without metadata use their HTML title, the topic `Research`, and an unspecified language. Catalog links are URL-encoded and relative, so spaces, punctuation, and GitHub Pages repository subpaths work correctly. The generator preserves report content and adds or refreshes a marked navigation block before the closing body tag.
 
 ## Files
 
